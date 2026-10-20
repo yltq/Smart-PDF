@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="brand_red">#E91922</color>
+    <color name="brand_red_dark">#C81018</color>
+    <color name="ink">#171A22</color>
+    <color name="ink_secondary">#697080</color>
+    <color name="surface">#FFFFFFFF</color>
+    <color name="surface_soft">#F6F7F9</color>
+    <color name="app_canvas">#FDFDFD</color>
+    <color name="surface_pressed">#F0F2F5</color>
+    <color name="brand_soft">#FFF0F1</color>
+    <color name="panel_stroke">#E6E8ED</color>
+    <color name="divider">#E9EBEF</color>
+    <color name="success">#2FA644</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
+</resources>

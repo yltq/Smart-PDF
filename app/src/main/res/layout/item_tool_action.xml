@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:layout_marginHorizontal="4dp"
+    android:background="@drawable/bg_tool_card" android:gravity="center" android:orientation="vertical" android:stateListAnimator="@animator/press_scale">
+    <ImageView android:id="@+id/actionIcon" android:layout_width="34dp" android:layout_height="34dp" android:contentDescription="@null" />
+    <TextView android:id="@+id/actionLabel" android:layout_width="match_parent" android:layout_height="32dp" android:gravity="center" android:textColor="@color/ink" android:textSize="13sp" android:textStyle="bold" />
+</LinearLayout>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="220dp" android:layout_margin="6dp" android:background="@drawable/bg_card" android:elevation="2dp" android:padding="6dp" android:stateListAnimator="@animator/press_scale">
+    <ImageView android:id="@+id/scanPageImage" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@null" android:scaleType="centerCrop" />
+    <TextView android:id="@+id/scanPageNumber" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="bottom|start" android:layout_margin="6dp" android:background="@drawable/bg_page_number" android:gravity="center" android:textColor="@color/white" android:textSize="12sp" android:textStyle="bold" />
+    <ImageView android:id="@+id/scanPageSelected" android:layout_width="38dp" android:layout_height="38dp" android:layout_gravity="top|end" android:contentDescription="@null" android:padding="8dp" />
+</FrameLayout>

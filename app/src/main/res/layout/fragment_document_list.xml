@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_canvas"
+    android:orientation="vertical"
+    android:paddingHorizontal="14dp"
+    android:paddingTop="18dp">
+
+    <TextView
+        android:id="@+id/pageTitle"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:gravity="center_vertical"
+        android:letterSpacing="0.01"
+        android:textColor="@color/ink"
+        android:textSize="27sp"
+        android:textStyle="bold" />
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/documentAppBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/app_canvas"
+            android:elevation="0dp"
+            app:liftOnScroll="true"
+            app:liftOnScrollTargetViewId="@id/documentList">
+
+            <LinearLayout
+                android:id="@+id/toolActions"
+                android:layout_width="match_parent"
+                android:layout_height="96dp"
+                android:orientation="horizontal"
+                android:paddingVertical="4dp"
+                app:layout_scrollFlags="scroll">
+
+                <include
+                    android:id="@+id/mergeAction"
+                    layout="@layout/item_tool_action" />
+
+                <include
+                    android:id="@+id/splitAction"
+                    layout="@layout/item_tool_action" />
+
+                <include
+                    android:id="@+id/printAction"
+                    layout="@layout/item_tool_action" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/categoryList"
+                android:layout_width="match_parent"
+                android:layout_height="62dp"
+                android:background="@color/app_canvas"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:paddingVertical="11dp" />
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="4dp"
+            android:background="@drawable/bg_panel"
+            android:paddingHorizontal="5dp"
+            android:paddingTop="3dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/documentList"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="12dp" />
+
+            <include
+                android:id="@+id/emptyState"
+                layout="@layout/view_empty_state" />
+
+            <ProgressBar
+                android:id="@+id/loading"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_gravity="center"
+                android:indeterminateTint="@color/brand_red" />
+        </FrameLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

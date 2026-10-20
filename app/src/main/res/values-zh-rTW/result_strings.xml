@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="result">處理結果</string>
+    <string name="merge_complete">合併完成</string>
+    <string name="split_complete">分割完成</string>
+    <string name="file_ready">檔案已準備好</string>
+    <string name="result_ready_description">PDF 已產生，可以立即檢視或分享。</string>
+    <string name="open_file">開啟檔案</string>
+    <string name="share_file">分享檔案</string>
+</resources>

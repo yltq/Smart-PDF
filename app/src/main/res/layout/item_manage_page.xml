@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="210dp" android:layout_margin="6dp" android:background="@drawable/bg_card" android:elevation="2dp" android:padding="7dp" android:stateListAnimator="@animator/press_scale">
+    <ImageView android:id="@+id/managePageImage" android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@null" android:scaleType="fitCenter" />
+    <TextView android:id="@+id/managePageNumber" android:layout_width="30dp" android:layout_height="30dp" android:layout_gravity="bottom|start" android:background="@drawable/bg_page_number" android:gravity="center" android:textColor="@color/white" android:textStyle="bold" />
+    <TextView android:id="@+id/managePageRotation" android:layout_width="wrap_content" android:layout_height="28dp" android:layout_gravity="bottom|end" android:background="@drawable/bg_chip" android:gravity="center" android:paddingHorizontal="8dp" android:textColor="@color/brand_red" android:textSize="11sp" android:textStyle="bold" />
+    <ImageView android:id="@+id/managePageSelected" android:layout_width="38dp" android:layout_height="38dp" android:layout_gravity="top|end" android:contentDescription="@null" android:padding="8dp" />
+</FrameLayout>

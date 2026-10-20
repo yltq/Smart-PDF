@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/app_canvas">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="66dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical" android:paddingHorizontal="4dp">
+        <ImageView android:id="@+id/backButton" android:layout_width="48dp" android:layout_height="48dp" android:contentDescription="@string/back" android:padding="12dp" android:src="@drawable/ic_back" android:stateListAnimator="@animator/press_scale" />
+        <LinearLayout android:layout_width="0dp" android:layout_height="50dp" android:layout_weight="1" android:gravity="center_vertical" android:orientation="vertical">
+            <TextView android:id="@+id/viewerTitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1" android:textColor="@color/ink" android:textSize="17sp" android:textStyle="bold" />
+            <TextView android:id="@+id/viewerSubtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/ink_secondary" android:textSize="11sp" />
+        </LinearLayout>
+        <TextView android:id="@+id/moreButton" android:layout_width="46dp" android:layout_height="48dp" android:contentDescription="@string/more_options" android:gravity="center" android:stateListAnimator="@animator/press_scale" android:text="⋮" android:textColor="@color/ink" android:textSize="26sp" />
+    </LinearLayout>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/viewerPages" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:padding="8dp" />
+        <WebView android:id="@+id/officePreview" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+        <LinearLayout android:id="@+id/viewerFallback" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical" android:padding="36dp" android:visibility="gone">
+            <ImageView android:id="@+id/fallbackIcon" android:layout_width="86dp" android:layout_height="110dp" android:contentDescription="@null" />
+            <TextView android:id="@+id/fallbackName" android:layout_width="match_parent" android:layout_height="54dp" android:gravity="center" android:textColor="@color/ink" android:textSize="20sp" android:textStyle="bold" />
+            <TextView android:id="@+id/fallbackMessage" android:layout_width="match_parent" android:layout_height="64dp" android:gravity="center" android:textColor="@color/ink_secondary" android:textSize="14sp" />
+            <TextView android:id="@+id/openExternal" android:layout_width="230dp" android:layout_height="54dp" android:background="@drawable/bg_primary_button" android:gravity="center" android:text="@string/open_in_another_app" android:textColor="@color/white" android:textStyle="bold" />
+        </LinearLayout>
+        <com.zunelo.pdfreader.common.LoadingIndicatorView android:id="@+id/viewerLoading" android:layout_width="54dp" android:layout_height="54dp" android:layout_gravity="center" />
+    </FrameLayout>
+</LinearLayout>

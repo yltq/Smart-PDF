@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="result">Hasil</string>
+    <string name="merge_complete">Penggabungan selesai</string>
+    <string name="split_complete">Pemisahan selesai</string>
+    <string name="file_ready">File siap</string>
+    <string name="result_ready_description">PDF Anda siap dibuka atau dibagikan.</string>
+    <string name="open_file">Buka file</string>
+    <string name="share_file">Bagikan file</string>
+</resources>

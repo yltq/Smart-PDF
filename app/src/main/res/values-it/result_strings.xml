@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="result">Risultato</string>
+    <string name="merge_complete">Unione completata</string>
+    <string name="split_complete">Divisione completata</string>
+    <string name="file_ready">File pronto</string>
+    <string name="result_ready_description">Il PDF è pronto per essere aperto o condiviso.</string>
+    <string name="open_file">Apri file</string>
+    <string name="share_file">Condividi file</string>
+</resources>

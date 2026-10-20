@@ -1,0 +1,63 @@
+[versions]
+agp = "8.13.2"
+kotlin = "2.0.21"
+coreKtx = "1.10.1"
+junit = "4.13.2"
+junitVersion = "1.1.5"
+espressoCore = "3.5.1"
+appcompat = "1.6.1"
+material = "1.10.0"
+activity = "1.8.0"
+constraintlayout = "2.1.4"
+pdfboxAndroid = "2.0.27.0"
+mlkitDocumentScanner = "16.0.0"
+googleMobileAds = "24.7.0"
+ump = "3.1.0"
+firebaseBom = "34.7.0"
+googleServices = "4.4.2"
+firebaseCrashlyticsPlugin = "3.0.3"
+stringfogPlugin = "5.2.0"
+stringfogXor = "5.0.0"
+installReferrer = "2.2"
+retrofit = "2.11.0"
+okhttp = "4.12.0"
+playReview = "2.0.2"
+adjust = "5.5.1"
+facebookAndroidSdk = "18.1.3"
+uiGraphics = "1.11.2"
+
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
+play-services-mlkit-document-scanner = { group = "com.google.android.gms", name = "play-services-mlkit-document-scanner", version.ref = "mlkitDocumentScanner" }
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "googleMobileAds" }
+user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "ump" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-config = { group = "com.google.firebase", name = "firebase-config" }
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
+stringfog-gradle-plugin = { group = "com.github.megatronking.stringfog", name = "gradle-plugin", version.ref = "stringfogPlugin" }
+stringfog-xor = { group = "com.github.megatronking.stringfog", name = "xor", version.ref = "stringfogXor" }
+installreferrer = { group = "com.android.installreferrer", name = "installreferrer", version.ref = "installReferrer" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+play-review = { group = "com.google.android.play", name = "review", version.ref = "playReview" }
+adjust-android = { group = "com.adjust.sdk", name = "adjust-android", version.ref = "adjust" }
+facebook-android-sdk = { group = "com.facebook.android", name = "facebook-android-sdk", version.ref = "facebookAndroidSdk" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics", version.ref = "uiGraphics" }
+
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" }

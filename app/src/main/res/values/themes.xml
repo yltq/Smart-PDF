@@ -1,0 +1,26 @@
+<resources>
+    <style name="Base.Theme.ZuneloPDF" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/brand_red</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/ink</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+    <style name="Theme.ZuneloPDF" parent="Base.Theme.ZuneloPDF" />
+    <style name="Animation.ZuneloPDF.Dialog" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/dialog_fade_scale_in</item>
+        <item name="android:windowExitAnimation">@anim/dialog_fade_scale_out</item>
+    </style>
+    <style name="Theme.ZuneloPDF.PermissionGateway" parent="Theme.Material3.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:colorAccent">@color/brand_red</item>
+    </style>
+</resources>

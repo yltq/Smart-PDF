@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="result">結果</string>
+    <string name="merge_complete">結合が完了しました</string>
+    <string name="split_complete">分割が完了しました</string>
+    <string name="file_ready">ファイルの準備完了</string>
+    <string name="result_ready_description">PDF を開く、または共有できます。</string>
+    <string name="open_file">ファイルを開く</string>
+    <string name="share_file">ファイルを共有</string>
+</resources>

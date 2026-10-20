@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/markupToolIcon"
+    android:layout_width="50dp"
+    android:layout_height="46dp"
+    android:layout_marginHorizontal="4dp"
+    android:background="@drawable/bg_markup_tool"
+    android:padding="12dp"
+    android:scaleType="centerInside"
+    android:stateListAnimator="@animator/press_scale"
+    android:tint="@color/markup_tool_tint" />

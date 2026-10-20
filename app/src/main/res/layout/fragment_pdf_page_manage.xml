@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/app_canvas" android:orientation="vertical" android:paddingHorizontal="14dp" android:paddingBottom="16dp">
+    <include android:id="@+id/toolbar" layout="@layout/view_toolbar" />
+    <TextView android:id="@+id/pageManageHint" android:layout_width="match_parent" android:layout_height="42dp" android:gravity="center_vertical" android:text="@string/page_manage_hint" android:textColor="@color/ink_secondary" android:textSize="13sp" />
+    <androidx.recyclerview.widget.RecyclerView android:id="@+id/managePages" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:clipToPadding="false" android:paddingBottom="8dp" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="52dp" android:orientation="horizontal">
+        <TextView android:id="@+id/rotatePages" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginEnd="6dp" android:layout_weight="1" android:background="@drawable/bg_secondary_button" android:gravity="center" android:stateListAnimator="@animator/press_scale" android:text="@string/rotate" android:textColor="@color/ink" android:textStyle="bold" />
+        <TextView android:id="@+id/deletePages" android:layout_width="0dp" android:layout_height="48dp" android:layout_marginStart="6dp" android:layout_weight="1" android:background="@drawable/bg_secondary_button" android:gravity="center" android:stateListAnimator="@animator/press_scale" android:text="@string/delete" android:textColor="@color/brand_red" android:textStyle="bold" />
+    </LinearLayout>
+    <TextView android:id="@+id/savePages" android:layout_width="match_parent" android:layout_height="54dp" android:layout_marginTop="8dp" android:background="@drawable/bg_primary_button" android:gravity="center" android:stateListAnimator="@animator/press_scale" android:text="@string/save_copy" android:textColor="@color/white" android:textStyle="bold" />
+</LinearLayout>

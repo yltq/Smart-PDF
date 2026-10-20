@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="64dp" android:background="@drawable/bg_toolbar" android:gravity="center_vertical">
+    <ImageView android:id="@+id/backButton" android:layout_width="44dp" android:layout_height="48dp" android:contentDescription="@string/back" android:padding="10dp" android:src="@drawable/ic_back" android:stateListAnimator="@animator/press_scale" />
+    <TextView android:id="@+id/toolbarTitle" android:layout_width="0dp" android:layout_height="48dp" android:layout_weight="1" android:gravity="center" android:textColor="@color/ink" android:textSize="18sp" android:textStyle="bold" />
+    <TextView android:id="@+id/toolbarAction" android:layout_width="44dp" android:layout_height="48dp" android:gravity="center" android:stateListAnimator="@animator/press_scale" android:textColor="@color/ink" android:textSize="25sp" />
+</LinearLayout>
