@@ -31,7 +31,6 @@ class LanguageFragment : Fragment(R.layout.fragment_language) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val onboarding = requireArguments().getBoolean(ARG_ONBOARDING)
         val preferences = requireContext().getSharedPreferences("onboarding", 0)
-        selected = preferences.getString("language", null) ?: ""
         val systemLocale = android.content.res.Resources.getSystem().configuration.locales[0] ?: Locale.getDefault()
         val supportedLanguages = listOf(
             "en" to "English", "es" to "Español", "pt" to "Português", "de" to "Deutsch",
@@ -42,10 +41,15 @@ class LanguageFragment : Fragment(R.layout.fragment_language) {
             "zh" -> if (systemLocale.country in setOf("TW", "HK", "MO") || systemLocale.script == "Hant") "zh-TW" else "zh-CN"
             else -> systemLocale.language
         }
-        val systemLanguageName = supportedLanguages.firstOrNull { it.first == systemTag }?.second
-            ?: systemLocale.getDisplayLanguage(systemLocale).replaceFirstChar { it.uppercaseChar() }
-        val languages = listOf("" to systemLanguageName) + supportedLanguages.filterNot { it.first == systemTag }
-        if (selected == systemTag) selected = ""
+        val supportedSystemLanguage = supportedLanguages.firstOrNull { it.first == systemTag }
+        val languages = if (supportedSystemLanguage != null) {
+            listOf("" to supportedSystemLanguage.second) + supportedLanguages.filterNot { it.first == systemTag }
+        } else {
+            supportedLanguages
+        }
+        selected = preferences.getString("language", null)
+            ?: if (supportedSystemLanguage != null) "" else "en"
+        if (supportedSystemLanguage != null && selected == systemTag) selected = ""
         view.findViewById<TextView>(R.id.toolbarTitle).setText(if (onboarding) R.string.choose_language else R.string.language)
         view.findViewById<View>(R.id.backButton).apply { visibility = if (onboarding) View.INVISIBLE else View.VISIBLE; setOnClickListener { (requireActivity() as MainActivity).back() } }
         view.findViewById<RecyclerView>(R.id.languageList).apply {
@@ -56,7 +60,11 @@ class LanguageFragment : Fragment(R.layout.fragment_language) {
             setText(if (onboarding) R.string.continue_action else R.string.apply)
             setOnClickListener {
                 preferences.edit().putString("language", selected).putBoolean("language_done", true).apply()
-                (requireActivity() as MainActivity).applyLanguage(selected, if (onboarding) 0 else 3)
+                if (onboarding) {
+                    (requireActivity() as MainActivity).applyNewUserLanguage(selected)
+                } else {
+                    (requireActivity() as MainActivity).applyLanguage(selected, 3)
+                }
             }
         }
     }

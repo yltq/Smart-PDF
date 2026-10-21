@@ -12,4 +12,12 @@
     <string name="merge_order_hint">Sélectionnez 2 à 9 PDF. Maintenez la poignée pour modifier l’ordre.</string><string name="reorder_document">Réorganiser le document</string>
     <string name="tap_to_place_text">Touchez la page à l’endroit où ajouter du texte</string>
     <string name="file_name_exists">Un fichier portant ce nom existe déjà</string>
+    <string name="intro_documents_title">Consultez vos documents facilement</string>
+    <string name="intro_documents_description">Prend en charge PDF, Word, Excel et PPT.</string>
+    <string name="intro_management_title">Gestion de fichiers simplifiée</string>
+    <string name="intro_management_description">Trouvez, ajoutez aux favoris, partagez et imprimez.</string>
+    <string name="intro_tools_title">Outils PDF essentiels</string>
+    <string name="intro_tools_description">Numérisez, fusionnez, divisez et annotez vos PDF.</string>
+    <string name="skip">Passer</string>
+    <string name="get_started">Commencer</string>
 </resources>

@@ -20,6 +20,15 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 
 class SplashFragment : Fragment(R.layout.fragment_splash) {
+    companion object {
+        private const val ARG_NEW_USER_FLOW = "new_user_flow"
+        private const val MINIMUM_STARTUP_DURATION = 2680L
+
+        fun newInstance(showNewUserFlow: Boolean) = SplashFragment().apply {
+            arguments = Bundle().apply { putBoolean(ARG_NEW_USER_FLOW, showNewUserFlow) }
+        }
+    }
+
     private lateinit var scene: WonderlandSplashView
     private lateinit var logo: ImageView
     private lateinit var title: TextView
@@ -65,8 +74,8 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
     private fun routeIfPossible() {
         if (!exitFinished || !isResumed || routed || !isAdded) return
         routed = true
-        val firstRun = !requireContext().getSharedPreferences("onboarding", 0).getBoolean("language_done", false)
-        (requireActivity() as MainActivity).showRoot(if (firstRun) LanguageFragment.newInstance(true) else HomeFragment())
+        val showNewUserFlow = arguments?.getBoolean(ARG_NEW_USER_FLOW) == true
+        (requireActivity() as MainActivity).showRoot(if (showNewUserFlow) LanguageFragment.newInstance(true) else HomeFragment())
     }
 
     override fun onResume() {
@@ -86,9 +95,5 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
         title.animate().cancel()
         scene.dispose()
         super.onDestroyView()
-    }
-
-    private companion object {
-        const val MINIMUM_STARTUP_DURATION = 2680L
     }
 }

@@ -12,4 +12,12 @@
     <string name="merge_order_hint">2～9 件の PDF を選択し、ハンドルを長押しして順序を変更します。</string><string name="reorder_document">ドキュメントを並べ替え</string>
     <string name="tap_to_place_text">テキストを追加する位置をページ上でタップしてください</string>
     <string name="file_name_exists">同じ名前のファイルが既に存在します</string>
+    <string name="intro_documents_title">文書をかんたん表示</string>
+    <string name="intro_documents_description">PDF、Word、Excel、PPT に対応。</string>
+    <string name="intro_management_title">シンプルなファイル管理</string>
+    <string name="intro_management_description">検索、お気に入り、共有、印刷ができます。</string>
+    <string name="intro_tools_title">便利な PDF ツール</string>
+    <string name="intro_tools_description">PDF のスキャン、結合、分割、注釈に対応。</string>
+    <string name="skip">スキップ</string>
+    <string name="get_started">始める</string>
 </resources>

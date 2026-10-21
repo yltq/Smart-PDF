@@ -12,4 +12,12 @@
     <string name="merge_order_hint">Pilih 2–9 PDF. Tekan dan tahan pegangan untuk mengubah urutan.</string><string name="reorder_document">Atur ulang dokumen</string>
     <string name="tap_to_place_text">Ketuk halaman di tempat Anda ingin menambahkan teks</string>
     <string name="file_name_exists">File dengan nama ini sudah ada</string>
+    <string name="intro_documents_title">Lihat Dokumen dengan Mudah</string>
+    <string name="intro_documents_description">Mendukung PDF, Word, Excel, dan PPT.</string>
+    <string name="intro_management_title">Pengelolaan File Sederhana</string>
+    <string name="intro_management_description">Temukan, favoritkan, bagikan, dan cetak file.</string>
+    <string name="intro_tools_title">Alat PDF Penting</string>
+    <string name="intro_tools_description">Pindai, gabungkan, pisahkan, dan anotasi PDF.</string>
+    <string name="skip">Lewati</string>
+    <string name="get_started">Mulai</string>
 </resources>

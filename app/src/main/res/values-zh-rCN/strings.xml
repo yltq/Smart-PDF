@@ -13,4 +13,12 @@
     <string name="merge_order_hint">选择 2–9 个 PDF，按住拖拽把手可调整合并顺序。</string><string name="reorder_document">调整文档顺序</string>
     <string name="tap_to_place_text">点击页面中需要添加文本的位置</string>
     <string name="file_name_exists">同一路径下已存在同名文件</string>
+    <string name="intro_documents_title">轻松查看文档</string>
+    <string name="intro_documents_description">支持 PDF、Word、Excel 和 PPT。</string>
+    <string name="intro_management_title">文件管理更简单</string>
+    <string name="intro_management_description">查找、收藏、分享和打印文件。</string>
+    <string name="intro_tools_title">实用的 PDF 工具</string>
+    <string name="intro_tools_description">扫描、合并、分割和标注 PDF。</string>
+    <string name="skip">跳过</string>
+    <string name="get_started">开始使用</string>
 </resources>

@@ -12,4 +12,12 @@
     <string name="merge_order_hint">PDF 2~9개를 선택하고 핸들을 길게 눌러 순서를 조정하세요.</string><string name="reorder_document">문서 순서 변경</string>
     <string name="tap_to_place_text">텍스트를 추가할 페이지 위치를 탭하세요</string>
     <string name="file_name_exists">같은 이름의 파일이 이미 있습니다</string>
+    <string name="intro_documents_title">간편한 문서 보기</string>
+    <string name="intro_documents_description">PDF, Word, Excel 및 PPT를 지원합니다.</string>
+    <string name="intro_management_title">간단한 파일 관리</string>
+    <string name="intro_management_description">파일을 찾고 즐겨찾기, 공유 및 인쇄하세요.</string>
+    <string name="intro_tools_title">필수 PDF 도구</string>
+    <string name="intro_tools_description">PDF를 스캔, 병합, 분할 및 주석 처리하세요.</string>
+    <string name="skip">건너뛰기</string>
+    <string name="get_started">시작하기</string>
 </resources>

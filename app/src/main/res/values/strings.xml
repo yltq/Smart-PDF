@@ -151,4 +151,12 @@
     </plurals>
     <string name="tap_to_place_text">Tap the page where you want to add text</string>
     <string name="file_name_exists">A file with this name already exists</string>
+    <string name="intro_documents_title">View Documents Easily</string>
+    <string name="intro_documents_description">Supports PDF, Word, Excel, and PPT.</string>
+    <string name="intro_management_title">Simple File Management</string>
+    <string name="intro_management_description">Find, favorite, share, and print files.</string>
+    <string name="intro_tools_title">Essential PDF Tools</string>
+    <string name="intro_tools_description">Scan, merge, split, and annotate PDFs.</string>
+    <string name="skip">Skip</string>
+    <string name="get_started">Get Started</string>
 </resources>

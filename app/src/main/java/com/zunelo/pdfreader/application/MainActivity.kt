@@ -26,8 +26,11 @@ import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.FragmentManager
 
 class MainActivity : AppCompatActivity() {
+    private var launchNewUserFlow = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         if (savedInstanceState == null) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        if (savedInstanceState == null) launchNewUserFlow = NewUserFlow.consumeForLaunch(this)
         val preferences = getSharedPreferences("onboarding", 0)
         if (preferences.contains("language")) {
             val savedLanguage = preferences.getString("language", "").orEmpty()
@@ -64,7 +67,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
-        if (savedInstanceState == null) showRoot(SplashFragment())
+        if (savedInstanceState == null) showRoot(SplashFragment.newInstance(launchNewUserFlow))
     }
 
     fun showRoot(fragment: Fragment) {
@@ -88,6 +91,12 @@ class MainActivity : AppCompatActivity() {
 
     fun applyLanguage(languageTag: String, destinationTab: Int) {
         showRoot(HomeFragment.newInstance(destinationTab))
+        supportFragmentManager.executePendingTransactions()
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageTag))
+    }
+
+    fun applyNewUserLanguage(languageTag: String) {
+        showRoot(IntroFragment())
         supportFragmentManager.executePendingTransactions()
         AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageTag))
     }
