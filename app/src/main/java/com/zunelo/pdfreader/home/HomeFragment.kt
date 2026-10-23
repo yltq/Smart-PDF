@@ -22,6 +22,7 @@ import android.view.ViewConfiguration
 import android.widget.TextView
 import android.widget.ImageView
 import android.widget.Toast
+import android.view.ViewGroup
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
@@ -29,14 +30,26 @@ import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanning
 import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult
 import kotlin.math.abs
+import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.SmartPdfAds
+import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 
-class HomeFragment : Fragment(R.layout.fragment_home) {
+class HomeFragment : Fragment(R.layout.fragment_home), PageAdRefreshable {
     companion object {
         private const val ARG_INITIAL_TAB = "initial_tab"
-        fun newInstance(initialTab: Int = 0) = HomeFragment().apply { arguments = Bundle().apply { putInt(ARG_INITIAL_TAB, initialTab) } }
+        private const val ARG_START_SCAN = "start_scan"
+        fun newInstance(initialTab: Int = 0, startScan: Boolean = false) = HomeFragment().apply {
+            arguments = Bundle().apply {
+                putInt(ARG_INITIAL_TAB, initialTab)
+                putBoolean(ARG_START_SCAN, startScan)
+            }
+        }
     }
     private var activeTab = 0
+    private var suppressInitialAdRefresh = false
     private lateinit var navViews: List<View>
+    private lateinit var scanAccessFlow: StorageAccessFlow
     private val icons = listOf(R.drawable.nav_selector_home, R.drawable.nav_selector_recent, R.drawable.nav_selector_collection, R.drawable.nav_selector_settings)
     private val scanLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
@@ -44,7 +57,18 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
         prepareScan(scanResult.pages.orEmpty().map { it.imageUri })
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        scanAccessFlow = StorageAccessFlow(
+            fragment = this,
+            onGranted = { if (isAdded) launchScanner() },
+            onDenied = {}
+        )
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        SmartPdfSignalHub.recordCustomSignal("page_home_show")
+        suppressInitialAdRefresh = savedInstanceState != null
         activeTab = savedInstanceState?.getInt("tab") ?: arguments?.getInt(ARG_INITIAL_TAB) ?: 0
         val labels = listOf(R.string.tab_home, R.string.tab_recent, R.string.tab_collection, R.string.tab_settings)
         navViews = listOf(view.findViewById(R.id.navHome), view.findViewById(R.id.navRecent), view.findViewById(R.id.navCollection), view.findViewById(R.id.navSettings))
@@ -54,10 +78,17 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             nav.setOnClickListener { switchTab(index) }
         }
         view.findViewById<View>(R.id.scanFab).apply {
-            setOnClickListener { launchScanner() }
+            setOnClickListener {
+                SmartPdfSignalHub.recordCustomSignal("home_create_click")
+                requestScan()
+            }
             makeScanFabDraggable(this)
         }
         switchTab(activeTab)
+        suppressInitialAdRefresh = false
+        if (savedInstanceState == null && arguments?.getBoolean(ARG_START_SCAN) == true) {
+            view.post { if (isAdded) requestScan() }
+        }
     }
 
     private fun makeScanFabDraggable(fab: View) {
@@ -170,8 +201,39 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             2 -> DocumentListFragment.newInstance(DocumentListFragment.MODE_COLLECTION)
             else -> SettingsFragment()
         }
-        childFragmentManager.beginTransaction().setReorderingAllowed(true).setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out).replace(R.id.tabContainer, fragment).commit()
+        val shouldRefreshAds = !suppressInitialAdRefresh
+        childFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
+            .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
+            .replace(R.id.tabContainer, fragment)
+            .runOnCommit {
+                if (shouldRefreshAds && isAdded) refreshCurrentNativeAd()
+            }
+            .commit()
+        if (suppressInitialAdRefresh) suppressInitialAdRefresh = false else refreshBanner()
     }
+
+    private fun refreshCurrentNativeAd() {
+        (childFragmentManager.findFragmentById(R.id.tabContainer) as? PageAdRefreshable)?.refreshPageAds()
+    }
+
+    fun refreshAds() {
+        refreshCurrentNativeAd()
+        refreshBanner()
+    }
+
+    fun refreshDocuments() {
+        (childFragmentManager.findFragmentById(R.id.tabContainer) as? DocumentListFragment)?.refreshDocuments()
+    }
+
+    private fun refreshBanner() {
+        val root = view ?: return
+        root.findViewById<ViewGroup>(R.id.homeBannerAd).post {
+            if (isAdded && view != null) SmartPdfAds.bindBanner(requireActivity(), AdScenes.HOME_BANNER, root.findViewById(R.id.homeBannerAd))
+        }
+    }
+
+    override fun refreshPageAds() = refreshAds()
 
     private fun launchScanner() {
         val options = GmsDocumentScannerOptions.Builder()
@@ -181,8 +243,15 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
             .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
             .build()
         GmsDocumentScanning.getClient(options).getStartScanIntent(requireActivity())
-            .addOnSuccessListener { scanLauncher.launch(IntentSenderRequest.Builder(it).build()) }
+            .addOnSuccessListener {
+                (requireActivity() as MainActivity).suppressNextPageAdRefresh()
+                scanLauncher.launch(IntentSenderRequest.Builder(it).build())
+            }
             .addOnFailureListener { Toast.makeText(requireContext(), R.string.scan_unavailable, Toast.LENGTH_SHORT).show() }
+    }
+
+    private fun requestScan() {
+        scanAccessFlow.request()
     }
 
     private fun prepareScan(uris: List<Uri>) {
@@ -200,4 +269,9 @@ class HomeFragment : Fragment(R.layout.fragment_home) {
     }
 
     override fun onSaveInstanceState(outState: Bundle) { outState.putInt("tab", activeTab); super.onSaveInstanceState(outState) }
+
+    override fun onDestroyView() {
+        view?.findViewById<ViewGroup>(R.id.homeBannerAd)?.let(SmartPdfAds::release)
+        super.onDestroyView()
+    }
 }

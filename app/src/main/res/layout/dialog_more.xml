@@ -111,14 +111,6 @@
                 layout="@layout/item_dialog_divider" />
 
             <include
-                android:id="@+id/pdfSecurityAction"
-                layout="@layout/item_dialog_action" />
-
-            <include
-                android:id="@+id/pdfSecurityDivider"
-                layout="@layout/item_dialog_divider" />
-
-            <include
                 android:id="@+id/infoAction"
                 layout="@layout/item_dialog_action" />
 

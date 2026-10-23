@@ -14,6 +14,7 @@ import com.zunelo.pdfreader.tools.*
 import com.zunelo.pdfreader.viewer.*
 
 import android.app.Activity
+import android.content.res.ColorStateList
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -45,6 +46,7 @@ object FileDialogs {
     const val ACTION_DELETED = "deleted"
     fun share(activity: Activity, item: DocumentItem) {
         val shareUri: Uri = runCatching { DocumentStore.shareUri(activity, item) }.getOrElse { item.uri }
+        (activity as? MainActivity)?.suppressNextPageAdRefresh()
         activity.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = item.mime.ifBlank { DocumentStore.inferredMime(item.name) }; putExtra(Intent.EXTRA_STREAM, shareUri); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, activity.getString(R.string.share_document)))
     }
 }
@@ -190,7 +192,7 @@ class MoreDialogFragment : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.pdfMergeDivider).visibility = if (showPdfActions) View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.pdfMergeAction).apply {
             visibility = if (showPdfActions) View.VISIBLE else View.GONE
-            if (showPdfActions) action(this, R.drawable.action_merge, getString(R.string.merge_pdf)) { dismiss(); (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_MERGE, item)) }
+            if (showPdfActions) action(this, R.drawable.ic_merge, getString(R.string.merge_pdf)) { dismiss(); (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_MERGE, item)) }
         }
         view.findViewById<View>(R.id.pdfPrintDivider).visibility = if (showPdfActions) View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.pdfAction).apply {
@@ -201,7 +203,6 @@ class MoreDialogFragment : BottomSheetDialogFragment() {
             visibility = if (showPdfActions) View.VISIBLE else View.GONE
             if (item.type == DocumentType.PDF) action(this, R.drawable.ic_print, getString(R.string.print_pdf)) { PdfPrintHelper.print(requireActivity(), item); dismiss() }
         }
-        view.findViewById<View>(R.id.pdfSecurityDivider).visibility = if (showPdfActions) View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.pdfMarkupDivider).visibility = if (showPdfActions) View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.pdfMarkupAction).apply {
             visibility = if (showPdfActions) View.VISIBLE else View.GONE
@@ -211,15 +212,10 @@ class MoreDialogFragment : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.pdfOrganizeAction).apply { visibility = if (showPdfActions) View.VISIBLE else View.GONE; if (showPdfActions) action(this, R.drawable.ic_pages, getString(R.string.organize_pages)) { dismiss(); (requireActivity() as MainActivity).navigate(PdfPageManageFragment.newInstance(item)) } }
         view.findViewById<View>(R.id.pdfWatermarkDivider).visibility = if (showPdfActions) View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.pdfWatermarkAction).apply { visibility = if (showPdfActions) View.VISIBLE else View.GONE; if (showPdfActions) action(this, R.drawable.ic_watermark, getString(R.string.add_watermark)) { dismiss(); PdfWatermarkDialogFragment.newInstance(item).show(parentFragmentManager, "watermark") } }
-        view.findViewById<View>(R.id.pdfSecurityAction).apply {
-            visibility = if (showPdfActions) View.VISIBLE else View.GONE
-            if (showPdfActions) action(this, R.drawable.ic_lock, getString(R.string.pdf_password_security)) {
-                dismiss(); PdfSecurityDialogFragment.newInstance(item).show(parentFragmentManager, "pdf_security_input")
-            }
-        }
         action(view.findViewById(R.id.infoAction), R.drawable.ic_info, getString(R.string.file_information)) { Toast.makeText(requireContext(), "${item.name}\n${DocumentStore.subtitle(requireContext(), item)}\n${item.uri}", Toast.LENGTH_LONG).show() }
         val deleteAction = view.findViewById<View>(R.id.deleteAction)
         action(deleteAction, R.drawable.ic_delete, getString(R.string.delete)) { confirmDelete(item, fromViewer) }
+        deleteAction.findViewById<ImageView>(R.id.actionIcon).imageTintList = ColorStateList.valueOf(requireContext().getColor(R.color.brand_red))
         deleteAction.findViewById<TextView>(R.id.actionLabel).setTextColor(requireContext().getColor(R.color.brand_red))
         configureScrollHint(view)
     }
@@ -256,5 +252,12 @@ class MoreDialogFragment : BottomSheetDialogFragment() {
             }
         }.start()
     }
-    private fun action(root: View, icon: Int, label: String, click: () -> Unit) { root.findViewById<ImageView>(R.id.actionIcon).setImageResource(icon); root.findViewById<TextView>(R.id.actionLabel).text = label; root.setOnClickListener { click() } }
+    private fun action(root: View, icon: Int, label: String, click: () -> Unit) {
+        root.findViewById<ImageView>(R.id.actionIcon).apply {
+            setImageResource(icon)
+            imageTintList = ColorStateList.valueOf(root.context.getColor(R.color.ink))
+        }
+        root.findViewById<TextView>(R.id.actionLabel).text = label
+        root.setOnClickListener { click() }
+    }
 }

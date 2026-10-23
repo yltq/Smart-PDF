@@ -1,5 +1,6 @@
 package com.zunelo.pdfreader.home
 
+import android.animation.ObjectAnimator
 import com.zunelo.pdfreader.R
 import com.zunelo.pdfreader.application.*
 import com.zunelo.pdfreader.common.*
@@ -23,8 +24,15 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.AppBarLayout
 import kotlin.math.abs
+import android.view.ViewGroup
+import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.ads.SmartPdfAds
+import android.view.animation.AccelerateDecelerateInterpolator
+import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
+import com.zunelo.pdfreader.cleanup.LargeFilesFragment
 
-class DocumentListFragment : Fragment(R.layout.fragment_document_list) {
+class DocumentListFragment : Fragment(R.layout.fragment_document_list), PageAdRefreshable {
     companion object {
         const val MODE_HOME = "home"; const val MODE_RECENT = "recent"; const val MODE_COLLECTION = "collection"
         private const val ARG_MODE = "mode"
@@ -34,6 +42,9 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list) {
     private var documents = emptyList<DocumentItem>()
     private var category: DocumentType? = null
     private var loadingDocuments = false
+    private var reloadAfterCurrentScan = false
+    private var lastAccessState: Boolean? = null
+    private var hintAnimator: ObjectAnimator? = null
     private lateinit var accessFlow: StorageAccessFlow
     private val mode get() = requireArguments().getString(ARG_MODE) ?: MODE_HOME
 
@@ -47,11 +58,25 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list) {
         title.setText(when (mode) { MODE_RECENT -> R.string.recent_files; MODE_COLLECTION -> R.string.collection; else -> R.string.app_name })
         val tools = view.findViewById<View>(R.id.toolActions)
         tools.visibility = if (mode == MODE_HOME) View.VISIBLE else View.GONE
+        view.findViewById<View>(R.id.printTopAction).apply {
+            visibility = if (mode == MODE_HOME) View.VISIBLE else View.GONE
+            setOnClickListener {
+                (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_PRINT))
+            }
+        }
         setupCollapsingHeader(view, tools)
-        setupTool(view.findViewById(R.id.mergeAction), R.drawable.action_merge, getString(R.string.merge_pdf)) { (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_MERGE)) }
-        setupTool(view.findViewById(R.id.splitAction), R.drawable.action_split, getString(R.string.split_pdf)) { (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_SPLIT)) }
-        setupTool(view.findViewById(R.id.printAction), R.drawable.action_print, getString(R.string.print)) { (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_PRINT)) }
-        view.findViewById<RecyclerView>(R.id.categoryList).apply { layoutManager = LinearLayoutManager(requireContext(), RecyclerView.HORIZONTAL, false); adapter = CategoryAdapter { category = it; render() } }
+        setupTool(view.findViewById(R.id.mergeAction), R.drawable.action_merge, getString(R.string.merge_pdf)) {
+            SmartPdfSignalHub.recordCustomSignal("merge_click")
+            (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_MERGE))
+        }
+        setupTool(view.findViewById(R.id.splitAction), R.drawable.action_split, getString(R.string.split_pdf)) {
+            SmartPdfSignalHub.recordCustomSignal("split_click")
+            (requireActivity() as MainActivity).navigate(ToolListFragment.newInstance(ToolListFragment.MODE_SPLIT))
+        }
+        setupTool(view.findViewById(R.id.largeFileAction), R.drawable.action_large_files, getString(R.string.large_files)) {
+            (requireActivity() as MainActivity).navigate(LargeFilesFragment())
+        }
+        view.findViewById<RecyclerView>(R.id.categoryList).apply { layoutManager = LinearLayoutManager(requireContext(), RecyclerView.HORIZONTAL, false); adapter = CategoryAdapter { category = it; render(); refreshPageAds() } }
         adapter = DocumentAdapter(
             onOpen = { open(it) },
             onFavorite = {
@@ -80,23 +105,51 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list) {
 
     private fun setupCollapsingHeader(root: View, tools: View) {
         val appBar = root.findViewById<AppBarLayout>(R.id.documentAppBar)
+        val hint = root.findViewById<TextView>(R.id.pullToolsHint)
         if (mode != MODE_HOME) {
+            hint.visibility = View.GONE
             appBar.setExpanded(false, false)
             return
         }
+        hint.setOnClickListener { appBar.setExpanded(true, true) }
         appBar.addOnOffsetChangedListener(AppBarLayout.OnOffsetChangedListener { layout, offset ->
             val range = layout.totalScrollRange.takeIf { it > 0 } ?: return@OnOffsetChangedListener
             val progress = (abs(offset).toFloat() / range).coerceIn(0f, 1f)
             tools.alpha = 1f - progress
             tools.scaleX = 1f - progress * 0.025f
             tools.scaleY = 1f - progress * 0.025f
+            updateToolsHint(hint, progress >= 0.88f)
         })
     }
 
+    private fun updateToolsHint(hint: View, show: Boolean) {
+        if (!show) {
+            hintAnimator?.cancel()
+            hint.visibility = View.GONE
+            hint.translationY = 0f
+            return
+        }
+        if (hint.visibility == View.VISIBLE) return
+        hint.visibility = View.VISIBLE
+        hint.alpha = 0f
+        hint.animate().alpha(1f).setDuration(160).start()
+        hintAnimator?.cancel()
+        hintAnimator = ObjectAnimator.ofFloat(hint, View.TRANSLATION_Y, 0f, requireContext().dp(4).toFloat(), 0f).apply {
+            duration = 760
+            repeatCount = 2
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
     private fun loadDocuments() {
-        if (loadingDocuments) return
+        if (loadingDocuments) {
+            reloadAfterCurrentScan = true
+            return
+        }
         val currentView = view ?: return
         loadingDocuments = true
+        currentView.findViewById<View>(R.id.contentOverlay).visibility = View.VISIBLE
         currentView.findViewById<View>(R.id.loading).visibility = View.VISIBLE
         currentView.findViewById<View>(R.id.emptyState).visibility = View.GONE
         Thread {
@@ -106,14 +159,24 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list) {
                 if (!isAdded || view == null) return@runOnUiThread
                 documents = result
                 render()
+                if (reloadAfterCurrentScan) {
+                    reloadAfterCurrentScan = false
+                    loadDocuments()
+                }
             }
         }.start()
     }
+
+    fun refreshDocuments() = loadDocuments()
 
     private fun render() {
         val root = view ?: return
         root.findViewById<View>(R.id.loading).visibility = View.GONE
         val access = DocumentStore.hasAccess(requireContext())
+        if (mode == MODE_HOME && lastAccessState != access) {
+            root.findViewById<AppBarLayout>(R.id.documentAppBar).setExpanded(access, true)
+            lastAccessState = access
+        }
         val source = when (mode) {
             MODE_RECENT -> { val map = documents.associateBy { it.uri.toString() }; DocumentStore.recentUris(requireContext()).mapNotNull(map::get) }
             MODE_COLLECTION -> documents.filter { DocumentStore.isFavorite(requireContext(), it) }
@@ -121,8 +184,14 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list) {
         }
         val filtered = category?.let { type -> source.filter { it.type == type } } ?: source
         adapter.submitList(filtered)
+        val overlay = root.findViewById<View>(R.id.contentOverlay)
         val state = root.findViewById<View>(R.id.emptyState)
-        if (filtered.isNotEmpty()) { state.visibility = View.GONE; return }
+        if (filtered.isNotEmpty()) {
+            state.visibility = View.GONE
+            overlay.visibility = View.GONE
+            return
+        }
+        overlay.visibility = View.VISIBLE
         state.visibility = View.VISIBLE
         val image = state.findViewById<ImageView>(R.id.stateImage)
         val title = state.findViewById<TextView>(R.id.stateTitle)
@@ -138,5 +207,21 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list) {
         }
     }
 
-    private fun open(item: DocumentItem) { DocumentStore.markRecent(requireContext(), item); (requireActivity() as MainActivity).navigate(ViewerFragment.newInstance(item)) }
+    private fun open(item: DocumentItem) {
+        SmartPdfSignalHub.recordCustomSignal("home_all_docs_click")
+        DocumentStore.markRecent(requireContext(), item)
+        (requireActivity() as MainActivity).openDocumentWithAd(item)
+    }
+
+    override fun refreshPageAds() {
+        val container = view?.findViewById<ViewGroup>(R.id.tabNativeAd) ?: return
+        SmartPdfAds.bindNative(requireActivity(), AdScenes.HOME_NATIVE, container)
+    }
+
+    override fun onDestroyView() {
+        hintAnimator?.cancel()
+        hintAnimator = null
+        view?.findViewById<ViewGroup>(R.id.tabNativeAd)?.let(SmartPdfAds::release)
+        super.onDestroyView()
+    }
 }

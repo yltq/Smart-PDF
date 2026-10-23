@@ -61,6 +61,7 @@ class PdfSecurityDialogFragment : BottomSheetDialogFragment() {
         val manager = parentFragmentManager
         val context = requireContext().applicationContext
         val unlocking = encrypted
+        val adStartedAt = host.beginCreationAd(com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF)
         val loading = ProcessingDialogFragment.newInstance(getString(if (unlocking) R.string.unlocking_pdf else R.string.protecting_pdf))
         dismiss()
         loading.show(manager, "pdf_security")
@@ -68,7 +69,7 @@ class PdfSecurityDialogFragment : BottomSheetDialogFragment() {
             val result = runCatching { if (unlocking) PdfTools.unlock(context, item, password) else PdfTools.protect(context, item, password) }
             host.runOnUiThread {
                 (manager.findFragmentByTag("pdf_security") as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
-                result.onSuccess { host.navigate(ResultFragment.newInstance(it, if (unlocking) "unlocked" else "protected")) }
+                result.onSuccess { host.showCreationResult(it, if (unlocking) "unlocked" else "protected", com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF, adStartedAt) }
                     .onFailure { Toast.makeText(host, if (unlocking) R.string.wrong_pdf_password else R.string.pdf_security_failed, Toast.LENGTH_SHORT).show() }
             }
         }.start()

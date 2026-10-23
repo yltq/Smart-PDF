@@ -100,6 +100,13 @@
         </FrameLayout>
     </LinearLayout>
 
+    <FrameLayout
+        android:id="@+id/resultNativeAd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="10dp" />
+
     <LinearLayout
         android:id="@+id/resultActions"
         android:layout_width="match_parent"

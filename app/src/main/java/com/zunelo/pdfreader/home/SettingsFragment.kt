@@ -19,8 +19,12 @@ import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import android.view.ViewGroup
+import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.ads.SmartPdfAds
 
-class SettingsFragment : Fragment(R.layout.fragment_settings) {
+class SettingsFragment : Fragment(R.layout.fragment_settings), PageAdRefreshable {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) { render() }
     private fun render() {
         val rows = mutableListOf(
@@ -37,6 +41,17 @@ class SettingsFragment : Fragment(R.layout.fragment_settings) {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, storeLink)
         }
+        (requireActivity() as MainActivity).suppressNextPageAdRefresh()
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_app)))
+    }
+
+    override fun refreshPageAds() {
+        val container = view?.findViewById<ViewGroup>(R.id.tabNativeAd) ?: return
+        SmartPdfAds.bindNative(requireActivity(), AdScenes.HOME_NATIVE, container)
+    }
+
+    override fun onDestroyView() {
+        view?.findViewById<ViewGroup>(R.id.tabNativeAd)?.let(SmartPdfAds::release)
+        super.onDestroyView()
     }
 }

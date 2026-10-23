@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">Desinstalar</string><string name="shortcut_view">Ver</string><string name="shortcut_scan">Digitalizar</string>
+    <string name="uninstall_step_one_title">Vamos melhorar</string><string name="uninstall_step_one_text">Algo não está funcionando? Estamos aqui para ajudar.</string>
+    <string name="uninstall_pdf_trouble">Problemas com PDF?</string><string name="uninstall_try_again">Tentar novamente</string><string name="uninstall_missing_feature">Falta algum recurso?</string><string name="uninstall_discover_more">Descobrir mais</string>
+    <string name="uninstall_give_another_try">Dê outra chance</string><string name="uninstall_continue">Continuar desinstalando</string>
+    <string name="uninstall_step_two_title">Antes de você ir…</string><string name="uninstall_step_two_text">O que podemos melhorar? Selecione todas as opções aplicáveis.</string>
+    <string name="uninstall_reason_hard_to_use">Difícil de usar</string><string name="uninstall_reason_ads">Anúncios demais</string><string name="uninstall_reason_viewing">Visualização de PDF ruim</string><string name="uninstall_reason_alerts">Alertas demais</string><string name="uninstall_reason_editing">Poucas opções de edição</string><string name="uninstall_reason_phone_tools">Prefiro as ferramentas do celular</string>
+    <string name="uninstall_keep_app">Vou tentar novamente</string><string name="uninstall_anyway">Desinstalar mesmo assim</string>
+</resources>

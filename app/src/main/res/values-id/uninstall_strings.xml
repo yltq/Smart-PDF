@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">Uninstal</string><string name="shortcut_view">Lihat</string><string name="shortcut_scan">Pindai</string>
+    <string name="uninstall_step_one_title">Mari Buat Lebih Baik</string><string name="uninstall_step_one_text">Ada yang tidak berfungsi? Kami siap membantu.</string>
+    <string name="uninstall_pdf_trouble">Ada masalah dengan PDF?</string><string name="uninstall_try_again">Coba Lagi</string><string name="uninstall_missing_feature">Fitur yang dibutuhkan belum ada?</string><string name="uninstall_discover_more">Temukan Lebih Banyak</string>
+    <string name="uninstall_give_another_try">Beri Kami Kesempatan Lagi</string><string name="uninstall_continue">Lanjutkan Uninstal</string>
+    <string name="uninstall_step_two_title">Sebelum Anda Pergi…</string><string name="uninstall_step_two_text">Apa yang dapat kami tingkatkan? Pilih semua yang sesuai.</string>
+    <string name="uninstall_reason_hard_to_use">Sulit digunakan</string><string name="uninstall_reason_ads">Terlalu banyak iklan</string><string name="uninstall_reason_viewing">Tampilan PDF kurang baik</string><string name="uninstall_reason_alerts">Terlalu banyak peringatan</string><string name="uninstall_reason_editing">Opsi edit kurang lengkap</string><string name="uninstall_reason_phone_tools">Lebih suka alat bawaan ponsel</string>
+    <string name="uninstall_keep_app">Saya Akan Mencoba Lagi</string><string name="uninstall_anyway">Tetap Uninstal</string>
+</resources>

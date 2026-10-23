@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">إلغاء التثبيت</string><string name="shortcut_view">عرض</string><string name="shortcut_scan">مسح</string>
+    <string name="uninstall_step_one_title">لنجعل التطبيق أفضل</string><string name="uninstall_step_one_text">هل هناك شيء لا يعمل؟ نحن هنا لمساعدتك.</string>
+    <string name="uninstall_pdf_trouble">هل تواجه مشكلة مع PDF؟</string><string name="uninstall_try_again">حاول مجددًا</string><string name="uninstall_missing_feature">هل تفتقد ميزة؟</string><string name="uninstall_discover_more">اكتشف المزيد</string>
+    <string name="uninstall_give_another_try">امنحنا فرصة أخرى</string><string name="uninstall_continue">متابعة إلغاء التثبيت</string>
+    <string name="uninstall_step_two_title">قبل أن تغادر…</string><string name="uninstall_step_two_text">ما الذي يمكننا تحسينه؟ حدد كل ما ينطبق.</string>
+    <string name="uninstall_reason_hard_to_use">صعب الاستخدام</string><string name="uninstall_reason_ads">إعلانات كثيرة جدًا</string><string name="uninstall_reason_viewing">عرض PDF غير جيد</string><string name="uninstall_reason_alerts">تنبيهات كثيرة جدًا</string><string name="uninstall_reason_editing">خيارات التحرير غير كافية</string><string name="uninstall_reason_phone_tools">أفضل أدوات الهاتف</string>
+    <string name="uninstall_keep_app">سأحاول مرة أخرى</string><string name="uninstall_anyway">إلغاء التثبيت على أي حال</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">Deinstallieren</string><string name="shortcut_view">Anzeigen</string><string name="shortcut_scan">Scannen</string>
+    <string name="uninstall_step_one_title">Machen wir es besser</string><string name="uninstall_step_one_text">Funktioniert etwas nicht? Wir helfen dir gerne.</string>
+    <string name="uninstall_pdf_trouble">Probleme mit PDFs?</string><string name="uninstall_try_again">Erneut versuchen</string><string name="uninstall_missing_feature">Fehlt eine Funktion?</string><string name="uninstall_discover_more">Mehr entdecken</string>
+    <string name="uninstall_give_another_try">Gib uns noch eine Chance</string><string name="uninstall_continue">Deinstallation fortsetzen</string>
+    <string name="uninstall_step_two_title">Bevor du gehst…</string><string name="uninstall_step_two_text">Was können wir verbessern? Wähle alle passenden Punkte aus.</string>
+    <string name="uninstall_reason_hard_to_use">Schwer zu bedienen</string><string name="uninstall_reason_ads">Zu viel Werbung</string><string name="uninstall_reason_viewing">Schlechte PDF-Anzeige</string><string name="uninstall_reason_alerts">Zu viele Hinweise</string><string name="uninstall_reason_editing">Zu wenige Bearbeitungsoptionen</string><string name="uninstall_reason_phone_tools">Ich bevorzuge die Handy-Tools</string>
+    <string name="uninstall_keep_app">Ich versuche es noch einmal</string><string name="uninstall_anyway">Trotzdem deinstallieren</string>
+</resources>

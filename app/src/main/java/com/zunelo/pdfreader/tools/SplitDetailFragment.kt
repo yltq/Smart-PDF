@@ -80,6 +80,7 @@ class SplitDetailFragment : Fragment(R.layout.fragment_split_detail) {
 
     private fun split(outputName: String) {
         if (pendingPages.isEmpty() || splitTask != null) return
+        val adStartedAt = (requireActivity() as MainActivity).beginCreationAd(com.zunelo.pdfreader.ads.AdScenes.SPLIT_PDF)
         action.isEnabled = false
         ProcessingDialogFragment.newInstance(getString(R.string.splitting)).show(parentFragmentManager, "processing")
         val context = requireContext().applicationContext
@@ -88,7 +89,7 @@ class SplitDetailFragment : Fragment(R.layout.fragment_split_detail) {
             (parentFragmentManager.findFragmentByTag("processing") as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
             if (!isAdded) return@FixedDurationTask
             action.isEnabled = true
-            result.onSuccess { (requireActivity() as MainActivity).navigate(ResultFragment.newInstance(it, "split")) }
+            result.onSuccess { (requireActivity() as MainActivity).showCreationResult(it, "split", com.zunelo.pdfreader.ads.AdScenes.SPLIT_PDF, adStartedAt) }
                 .onFailure { Toast.makeText(requireContext(), R.string.split_failed, Toast.LENGTH_LONG).show() }
         }.also { it.start() }
     }

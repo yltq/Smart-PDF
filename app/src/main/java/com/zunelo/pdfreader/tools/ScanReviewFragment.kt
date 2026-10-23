@@ -75,13 +75,14 @@ class ScanReviewFragment : Fragment(R.layout.fragment_scan_review) {
     private fun createPdf(name: String) {
         val paths = adapter.selectedPaths()
         if (paths.isEmpty()) return
+        val adStartedAt = (requireActivity() as MainActivity).beginCreationAd(com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF)
         ProcessingDialogFragment.newInstance(getString(R.string.creating_pdf)).show(parentFragmentManager, "scan_creating")
         val context = requireContext().applicationContext
         Thread {
             val result = runCatching { PdfTools.createFromImages(context, paths, name) }
             activity?.runOnUiThread {
                 (parentFragmentManager.findFragmentByTag("scan_creating") as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
-                result.onSuccess { (requireActivity() as MainActivity).navigate(ResultFragment.newInstance(it, "created")) }
+                result.onSuccess { (requireActivity() as MainActivity).showCreationResult(it, "created", com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF, adStartedAt) }
                     .onFailure { Toast.makeText(requireContext(), R.string.create_pdf_failed, Toast.LENGTH_SHORT).show() }
             }
         }.start()

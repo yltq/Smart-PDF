@@ -115,6 +115,7 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list) {
 
     private fun merge(outputName: String) {
         if (pendingMerge.size < 2 || mergeTask != null) return
+        val adStartedAt = (requireActivity() as MainActivity).beginCreationAd(com.zunelo.pdfreader.ads.AdScenes.MERGE_PDF)
         action.isEnabled = false
         ProcessingDialogFragment.newInstance(getString(R.string.merging)).show(parentFragmentManager, "processing")
         val context = requireContext().applicationContext
@@ -123,7 +124,7 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list) {
             (parentFragmentManager.findFragmentByTag("processing") as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
             if (!isAdded) return@FixedDurationTask
             action.isEnabled = true
-            result.onSuccess { (requireActivity() as MainActivity).navigate(ResultFragment.newInstance(it, "merged")) }
+            result.onSuccess { (requireActivity() as MainActivity).showCreationResult(it, "merged", com.zunelo.pdfreader.ads.AdScenes.MERGE_PDF, adStartedAt) }
                 .onFailure { Toast.makeText(requireContext(), R.string.merge_failed, Toast.LENGTH_LONG).show() }
         }.also { it.start() }
     }

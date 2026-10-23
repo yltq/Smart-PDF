@@ -24,6 +24,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 
 class ViewerFragment : Fragment(R.layout.fragment_viewer) {
     companion object { fun newInstance(item: DocumentItem) = ViewerFragment().apply { arguments = Bundle().putDocument(item) } }
@@ -32,6 +33,7 @@ class ViewerFragment : Fragment(R.layout.fragment_viewer) {
 
     override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); item = requireArguments().document() ?: error("Missing document") }
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        SmartPdfSignalHub.recordCustomSignal("file_detail_show")
         parentFragmentManager.setFragmentResultListener(FileDialogs.RESULT_VIEWER_CHANGED, viewLifecycleOwner) { _, result ->
             when (result.getString(FileDialogs.RESULT_ACTION)) {
                 FileDialogs.ACTION_DELETED -> (requireActivity() as MainActivity).back()
@@ -94,7 +96,7 @@ class ViewerFragment : Fragment(R.layout.fragment_viewer) {
     private fun renderPlainOrFallback() { if (item.name.substringAfterLast('.', "").lowercase() in setOf("txt", "csv", "rtf")) renderOffice() else showFallback(getString(R.string.open_with_compatible_app)) }
     private fun viewerSubtitle(document: DocumentItem) = "${document.type.label} · ${DocumentStore.formatSize(document.size)}"
     private fun showFallback(message: String) { val root = view ?: return; root.findViewById<View>(R.id.viewerLoading).visibility = View.GONE; root.findViewById<View>(R.id.viewerPages).visibility = View.GONE; root.findViewById<View>(R.id.officePreview).visibility = View.GONE; root.findViewById<View>(R.id.viewerFallback).visibility = View.VISIBLE; root.findViewById<ImageView>(R.id.fallbackIcon).setImageResource(documentIcon(item.type)); root.findViewById<TextView>(R.id.fallbackName).text = item.name; root.findViewById<TextView>(R.id.fallbackMessage).text = message }
-    private fun openExternally() { runCatching { startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW).apply { setDataAndType(DocumentStore.shareUri(requireContext(), item), item.mime); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, getString(R.string.open_document))) }.onFailure { Toast.makeText(requireContext(), R.string.no_compatible_app, Toast.LENGTH_SHORT).show() } }
+    private fun openExternally() { runCatching { (requireActivity() as MainActivity).suppressNextPageAdRefresh(); startActivity(Intent.createChooser(Intent(Intent.ACTION_VIEW).apply { setDataAndType(DocumentStore.shareUri(requireContext(), item), item.mime); addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION) }, getString(R.string.open_document))) }.onFailure { Toast.makeText(requireContext(), R.string.no_compatible_app, Toast.LENGTH_SHORT).show() } }
 
     override fun onDestroyView() {
         pageLoader?.close()

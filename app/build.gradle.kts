@@ -54,9 +54,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
     buildFeatures {
         buildConfig = true
         viewBinding = true
@@ -65,6 +62,12 @@ android {
         language {
             enableSplit = false
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
     }
 }
 
@@ -85,22 +88,32 @@ dependencies {
 
     implementation(libs.pdfbox.android)
     implementation(libs.play.services.mlkit.document.scanner)
+    implementation(libs.play.services.ads)
     implementation(libs.user.messaging.platform)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.analytics)
     implementation(libs.firebase.crashlytics)
     implementation(libs.firebase.config)
     implementation(libs.firebase.messaging)
-//    implementation(libs.installreferrer)
+    implementation(libs.installreferrer)
     implementation(libs.retrofit)
     implementation(libs.okhttp)
 //    implementation("com.google.android.gms:play-services-time:16.0.1")
 //    implementation(libs.play.review)
 //    implementation(libs.adjust.android)
     implementation(libs.facebook.android.sdk)
+    implementation(libs.appsflyer.android.sdk)
     implementation(libs.stringfog.xor)
-    implementation("androidx.media:media:1.7.0")
+    implementation("androidx.media:media:1.8.0")
 
+    implementation("com.google.ads.mediation:applovin:13.6.4.2")
+    implementation("com.google.ads.mediation:vungle:7.7.8.1")
+    implementation("com.google.ads.mediation:facebook:6.22.0.1")
+    implementation("com.google.ads.mediation:mintegral:17.1.81.1")
+    implementation("com.google.ads.mediation:moloco:4.12.0.1")
+    implementation("com.google.ads.mediation:pangle:8.3.0.3.0")
+    implementation("com.unity3d.ads:unity-ads:4.20.1")
+    implementation("com.google.ads.mediation:unity:4.20.1.0")
 
     // Media3
     implementation("androidx.media3:media3-exoplayer:1.5.1")

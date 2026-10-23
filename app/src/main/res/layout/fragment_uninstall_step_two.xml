@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/app_canvas">
+
+    <ImageView
+        android:id="@+id/uninstallBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginTop="8dp"
+        android:contentDescription="@string/back"
+        android:padding="13dp"
+        android:src="@drawable/ic_back"
+        android:stateListAnimator="@animator/press_scale"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/uninstallTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="12dp"
+        android:gravity="center"
+        android:text="@string/uninstall_step_two_title"
+        android:textColor="@color/ink"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/uninstallBack" />
+
+    <TextView
+        android:id="@+id/uninstallSubtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="@string/uninstall_step_two_text"
+        android:textColor="@color/ink_secondary"
+        android:textSize="15sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/uninstallTitle" />
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="20dp"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        app:layout_constraintBottom_toTopOf="@id/uninstallActions"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/uninstallSubtitle">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="16dp">
+
+            <TextView android:id="@+id/reasonHardToUse" style="@style/UninstallReason" android:text="@string/uninstall_reason_hard_to_use" />
+            <TextView android:id="@+id/reasonTooManyAds" style="@style/UninstallReason" android:layout_marginTop="10dp" android:text="@string/uninstall_reason_ads" />
+            <TextView android:id="@+id/reasonPoorViewing" style="@style/UninstallReason" android:layout_marginTop="10dp" android:text="@string/uninstall_reason_viewing" />
+            <TextView android:id="@+id/reasonTooManyAlerts" style="@style/UninstallReason" android:layout_marginTop="10dp" android:text="@string/uninstall_reason_alerts" />
+            <TextView android:id="@+id/reasonNotEnoughEditing" style="@style/UninstallReason" android:layout_marginTop="10dp" android:text="@string/uninstall_reason_editing" />
+            <TextView android:id="@+id/reasonPhoneTools" style="@style/UninstallReason" android:layout_marginTop="10dp" android:text="@string/uninstall_reason_phone_tools" />
+            <FrameLayout
+                android:id="@+id/uninstallNativeAd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/uninstallActions"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="20dp"
+        android:layout_marginBottom="18dp"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/keepApp"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_primary_button"
+            android:gravity="center"
+            android:stateListAnimator="@animator/press_scale"
+            android:text="@string/uninstall_keep_app"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/uninstallAnyway"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:stateListAnimator="@animator/press_scale"
+            android:text="@string/uninstall_anyway"
+            android:textColor="@color/ink_secondary"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

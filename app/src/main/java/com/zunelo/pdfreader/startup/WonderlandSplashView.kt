@@ -75,7 +75,7 @@ class WonderlandSplashView @JvmOverloads constructor(
     private val lightTrailPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
-        strokeWidth = 2f * density
+        strokeWidth = 5f * density
     }
     private val bounds = RectF()
     private val foldPath = Path()

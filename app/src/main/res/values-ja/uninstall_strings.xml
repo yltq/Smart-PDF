@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">アンインストール</string><string name="shortcut_view">表示</string><string name="shortcut_scan">スキャン</string>
+    <string name="uninstall_step_one_title">もっと使いやすく</string><string name="uninstall_step_one_text">うまく動作しない点がありますか？解決をお手伝いします。</string>
+    <string name="uninstall_pdf_trouble">PDF でお困りですか？</string><string name="uninstall_try_again">もう一度試す</string><string name="uninstall_missing_feature">必要な機能がありませんか？</string><string name="uninstall_discover_more">詳しく見る</string>
+    <string name="uninstall_give_another_try">もう一度使ってみる</string><string name="uninstall_continue">アンインストールを続ける</string>
+    <string name="uninstall_step_two_title">お別れの前に…</string><string name="uninstall_step_two_text">改善してほしい点をすべて選択してください。</string>
+    <string name="uninstall_reason_hard_to_use">使いにくい</string><string name="uninstall_reason_ads">広告が多すぎる</string><string name="uninstall_reason_viewing">PDF が見づらい</string><string name="uninstall_reason_alerts">通知が多すぎる</string><string name="uninstall_reason_editing">編集機能が足りない</string><string name="uninstall_reason_phone_tools">端末の標準ツールを使いたい</string>
+    <string name="uninstall_keep_app">もう一度試してみる</string><string name="uninstall_anyway">アンインストールする</string>
+</resources>

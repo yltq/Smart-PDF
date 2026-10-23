@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">Kaldır</string><string name="shortcut_view">Görüntüle</string><string name="shortcut_scan">Tara</string>
+    <string name="uninstall_step_one_title">Birlikte İyileştirelim</string><string name="uninstall_step_one_text">Bir şey çalışmıyor mu? Yardım etmek için buradayız.</string>
+    <string name="uninstall_pdf_trouble">PDF sorunu mu yaşıyorsunuz?</string><string name="uninstall_try_again">Tekrar Dene</string><string name="uninstall_missing_feature">Bir özellik mi eksik?</string><string name="uninstall_discover_more">Daha Fazlasını Keşfet</string>
+    <string name="uninstall_give_another_try">Bize Bir Şans Daha Ver</string><string name="uninstall_continue">Kaldırmaya Devam Et</string>
+    <string name="uninstall_step_two_title">Gitmeden Önce…</string><string name="uninstall_step_two_text">Neyi daha iyi yapabiliriz? Uygun olanların tümünü seçin.</string>
+    <string name="uninstall_reason_hard_to_use">Kullanımı zor</string><string name="uninstall_reason_ads">Çok fazla reklam</string><string name="uninstall_reason_viewing">PDF görüntüleme zayıf</string><string name="uninstall_reason_alerts">Çok fazla uyarı</string><string name="uninstall_reason_editing">Düzenleme seçenekleri yetersiz</string><string name="uninstall_reason_phone_tools">Telefon araçlarını tercih ediyorum</string>
+    <string name="uninstall_keep_app">Bir Kez Daha Deneyeceğim</string><string name="uninstall_anyway">Yine de Kaldır</string>
+</resources>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">Uninstall</string>
+    <string name="shortcut_view">View</string>
+    <string name="shortcut_scan">Scan</string>
+    <string name="uninstall_step_one_title">Let’s Make It Better</string>
+    <string name="uninstall_step_one_text">Something not working for you? We’re here to help.</string>
+    <string name="uninstall_pdf_trouble">Having PDF trouble?</string>
+    <string name="uninstall_try_again">Try Again</string>
+    <string name="uninstall_missing_feature">Missing a feature?</string>
+    <string name="uninstall_discover_more">Discover More</string>
+    <string name="uninstall_give_another_try">Give Us Another Try</string>
+    <string name="uninstall_continue">Continue Uninstalling</string>
+    <string name="uninstall_step_two_title">Before You Go…</string>
+    <string name="uninstall_step_two_text">What could we do better? Select all that apply.</string>
+    <string name="uninstall_reason_hard_to_use">Hard to use</string>
+    <string name="uninstall_reason_ads">Too many ads</string>
+    <string name="uninstall_reason_viewing">Poor PDF viewing</string>
+    <string name="uninstall_reason_alerts">Too many alerts</string>
+    <string name="uninstall_reason_editing">Not enough editing options</string>
+    <string name="uninstall_reason_phone_tools">Prefer my phone’s tools</string>
+    <string name="uninstall_keep_app">I’ll Give It Another Try</string>
+    <string name="uninstall_anyway">Uninstall Anyway</string>
+</resources>

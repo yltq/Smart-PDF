@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">卸载</string><string name="shortcut_view">查看</string><string name="shortcut_scan">扫描</string>
+    <string name="uninstall_step_one_title">让我们做得更好</string><string name="uninstall_step_one_text">使用中遇到问题？我们愿意帮你解决。</string>
+    <string name="uninstall_pdf_trouble">PDF 使用遇到问题？</string><string name="uninstall_try_again">再试一次</string><string name="uninstall_missing_feature">缺少想要的功能？</string><string name="uninstall_discover_more">发现更多</string>
+    <string name="uninstall_give_another_try">再给我们一次机会</string><string name="uninstall_continue">继续卸载</string>
+    <string name="uninstall_step_two_title">离开之前……</string><string name="uninstall_step_two_text">我们还能如何改进？可多选。</string>
+    <string name="uninstall_reason_hard_to_use">操作困难</string><string name="uninstall_reason_ads">广告太多</string><string name="uninstall_reason_viewing">PDF 查看体验不佳</string><string name="uninstall_reason_alerts">提醒太多</string><string name="uninstall_reason_editing">编辑功能不足</string><string name="uninstall_reason_phone_tools">更喜欢手机自带工具</string>
+    <string name="uninstall_keep_app">我愿意再试一次</string><string name="uninstall_anyway">仍要卸载</string>
+</resources>

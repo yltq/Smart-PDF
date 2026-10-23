@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
 import androidx.viewpager2.widget.ViewPager2
 import com.zunelo.pdfreader.R
@@ -12,8 +13,15 @@ import com.zunelo.pdfreader.application.MainActivity
 import com.zunelo.pdfreader.common.dp
 import com.zunelo.pdfreader.home.HomeFragment
 import kotlin.math.abs
+import android.view.ViewGroup
+import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.SmartPdfAds
+import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 
-class IntroFragment : Fragment(R.layout.fragment_intro) {
+class IntroFragment : Fragment(R.layout.fragment_intro), PageAdRefreshable {
+    private var leaving = false
+    private var pageAdRefreshEnabled = true
     private val pages = listOf(
         IntroPage(R.drawable.intro_documents, R.string.intro_documents_title, R.string.intro_documents_description),
         IntroPage(R.drawable.intro_management, R.string.intro_management_title, R.string.intro_management_description),
@@ -21,6 +29,9 @@ class IntroFragment : Fragment(R.layout.fragment_intro) {
     )
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        SmartPdfSignalHub.recordCustomSignal("page_introduce_show")
+        pageAdRefreshEnabled = savedInstanceState == null
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {}
         val pager = view.findViewById<ViewPager2>(R.id.introPager)
         val action = view.findViewById<TextView>(R.id.introAction)
         val dots = view.findViewById<LinearLayout>(R.id.introDots)
@@ -51,11 +62,13 @@ class IntroFragment : Fragment(R.layout.fragment_intro) {
                     background = requireContext().getDrawable(if (index == position) R.drawable.bg_intro_dot_active else R.drawable.bg_intro_dot_inactive)
                 }
             }
-            action.setText(if (position == pages.lastIndex) R.string.get_started else R.string.next)
         }
         pager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 renderPosition(position)
+                if (pageAdRefreshEnabled) {
+                    SmartPdfAds.bindNative(requireActivity(), AdScenes.NEW_INTRO_NATIVE, view.findViewById(R.id.introNativeAd))
+                }
                 pager.post {
                     pager.findViewWithTag<View>("intro_page_$position")?.findViewById<ImageView>(R.id.introImage)?.apply {
                         animate().cancel()
@@ -67,14 +80,32 @@ class IntroFragment : Fragment(R.layout.fragment_intro) {
                 }
             }
         })
-        action.setOnClickListener {
-            if (pager.currentItem < pages.lastIndex) pager.setCurrentItem(pager.currentItem + 1, true) else finish()
-        }
-        view.findViewById<View>(R.id.skipIntro).setOnClickListener { finish() }
+        action.setText(R.string.next)
+        action.setOnClickListener { openHome() }
+        view.findViewById<View>(R.id.skipIntro).setOnClickListener { openHome() }
         renderPosition(0)
+        view.post { pageAdRefreshEnabled = true }
     }
 
-    private fun finish() {
-        (requireActivity() as MainActivity).showRoot(HomeFragment())
+    private fun openHome() {
+        if (leaving) return
+        leaving = true
+        SmartPdfSignalHub.recordCustomSignal("page_introduce_click")
+        SmartPdfAds.show(requireActivity(), AdScenes.NEW_INTRO_INTERSTITIAL) {
+            (requireActivity() as MainActivity).apply {
+                completeNewUserFlow()
+                showRoot(HomeFragment())
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        view?.findViewById<ViewGroup>(R.id.introNativeAd)?.let(SmartPdfAds::release)
+        super.onDestroyView()
+    }
+
+    override fun refreshPageAds() {
+        val container = view?.findViewById<ViewGroup>(R.id.introNativeAd) ?: return
+        SmartPdfAds.bindNative(requireActivity(), AdScenes.NEW_INTRO_NATIVE, container)
     }
 }

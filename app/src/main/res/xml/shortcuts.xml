@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="uninstall"
+        android:enabled="true"
+        android:icon="@drawable/shortcut_uninstall"
+        android:shortcutLongLabel="@string/shortcut_uninstall"
+        android:shortcutShortLabel="@string/shortcut_uninstall">
+        <intent
+            android:action="com.zunelo.pdfreader.action.UNINSTALL"
+            android:targetClass="com.zunelo.pdfreader.application.MainActivity"
+            android:targetPackage="com.zunelo.pdfreader" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="view"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_view"
+        android:shortcutLongLabel="@string/shortcut_view"
+        android:shortcutShortLabel="@string/shortcut_view">
+        <intent
+            android:action="com.zunelo.pdfreader.action.VIEW"
+            android:targetClass="com.zunelo.pdfreader.application.MainActivity"
+            android:targetPackage="com.zunelo.pdfreader" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="scan"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_scan"
+        android:shortcutLongLabel="@string/shortcut_scan"
+        android:shortcutShortLabel="@string/shortcut_scan">
+        <intent
+            android:action="com.zunelo.pdfreader.action.SCAN"
+            android:targetClass="com.zunelo.pdfreader.application.MainActivity"
+            android:targetPackage="com.zunelo.pdfreader" />
+    </shortcut>
+</shortcuts>

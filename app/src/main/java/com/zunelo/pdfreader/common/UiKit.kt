@@ -18,6 +18,8 @@ import android.content.Context
 import android.graphics.Color
 import android.view.Window
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 
 object Palette {
     const val RED = 0xFFE91922.toInt()
@@ -37,6 +39,17 @@ fun Activity.prepareWindow(window: Window = this.window) {
     WindowCompat.getInsetsController(window, window.decorView).apply {
         isAppearanceLightStatusBars = true
         isAppearanceLightNavigationBars = true
+    }
+}
+
+fun Activity.setNavigationBarVisible(visible: Boolean, window: Window = this.window) {
+    WindowCompat.getInsetsController(window, window.decorView).apply {
+        systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        if (visible) {
+            show(WindowInsetsCompat.Type.navigationBars())
+        } else {
+            hide(WindowInsetsCompat.Type.navigationBars())
+        }
     }
 }
 

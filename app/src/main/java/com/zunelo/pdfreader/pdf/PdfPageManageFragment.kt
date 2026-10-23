@@ -45,8 +45,9 @@ class PdfPageManageFragment : Fragment(R.layout.fragment_pdf_page_manage) {
     }
     private fun updateHint() { if (::adapter.isInitialized) view?.findViewById<TextView>(R.id.pageManageHint)?.text = getString(R.string.page_manage_selection, adapter.selectedCount()) }
     private fun save(name: String) {
+        val adStartedAt = (requireActivity() as MainActivity).beginCreationAd(com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF)
         val plans = adapter.pages.map { it.copy() }; ProcessingDialogFragment.newInstance(getString(R.string.saving_pdf)).show(parentFragmentManager, "organize_saving"); val context = requireContext().applicationContext
-        Thread { val result = runCatching { PdfTools.organizePages(context, item, plans, name) }; activity?.runOnUiThread { (parentFragmentManager.findFragmentByTag("organize_saving") as? ProcessingDialogFragment)?.dismissAllowingStateLoss(); result.onSuccess { (requireActivity() as MainActivity).navigate(ResultFragment.newInstance(it, "organized")) }.onFailure { Toast.makeText(requireContext(), R.string.save_pdf_failed, Toast.LENGTH_SHORT).show() } } }.start()
+        Thread { val result = runCatching { PdfTools.organizePages(context, item, plans, name) }; activity?.runOnUiThread { (parentFragmentManager.findFragmentByTag("organize_saving") as? ProcessingDialogFragment)?.dismissAllowingStateLoss(); result.onSuccess { (requireActivity() as MainActivity).showCreationResult(it, "organized", com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF, adStartedAt) }.onFailure { Toast.makeText(requireContext(), R.string.save_pdf_failed, Toast.LENGTH_SHORT).show() } } }.start()
     }
     override fun onDestroyView() { loader?.close(); loader = null; super.onDestroyView() }
 }

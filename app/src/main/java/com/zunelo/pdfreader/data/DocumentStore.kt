@@ -58,6 +58,13 @@ object DocumentStore {
         Environment.isExternalStorageManager()
     } else ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
 
+    fun canModifyStorage(context: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        Environment.isExternalStorageManager()
+    } else {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+    }
+
     fun scan(context: Context): List<DocumentItem> {
         if (!hasAccess(context)) return emptyList()
         return runCatching {
@@ -127,7 +134,7 @@ object DocumentStore {
 
     fun delete(context: Context, item: DocumentItem): Boolean = runCatching {
         if (item.uri.scheme != "file" || !File(item.uri.path!!).delete()) return@runCatching false
-        removeStoredUri(context, item.uri.toString())
+        forgetUri(context, item.uri.toString())
         true
     }.getOrDefault(false)
 
@@ -141,7 +148,7 @@ object DocumentStore {
         prefs.edit().putStringSet(KEY_FAVORITES, favorites).putStringSet(KEY_RECENTS, recents).apply()
     }
 
-    private fun removeStoredUri(context: Context, uri: String) {
+    fun forgetUri(context: Context, uri: String) {
         val prefs = context.getSharedPreferences(PREFS, 0)
         val favorites = prefs.getStringSet(KEY_FAVORITES, emptySet()).orEmpty().filterTo(mutableSetOf()) { it != uri }
         val recents = prefs.getStringSet(KEY_RECENTS, emptySet()).orEmpty().filterTo(mutableSetOf()) { it.substringAfter('|') != uri }
@@ -176,6 +183,7 @@ object DocumentStore {
     }
 
     fun formatSize(bytes: Long): String = when {
+        bytes >= 1024L * 1024L * 1024L -> String.format(Locale.US, "%.1f GB", bytes / 1024f / 1024f / 1024f)
         bytes >= 1024L * 1024L -> String.format(Locale.US, "%.1f MB", bytes / 1024f / 1024f)
         bytes >= 1024L -> String.format(Locale.US, "%.0f KB", bytes / 1024f)
         else -> "$bytes B"

@@ -34,6 +34,7 @@ object PdfPrintHelper {
             Toast.makeText(activity, R.string.print_prepare_failed, Toast.LENGTH_SHORT).show()
             return
         }
+        (activity as? MainActivity)?.suppressNextPageAdRefresh()
         (activity.getSystemService(Activity.PRINT_SERVICE) as PrintManager).print(
             item.name,
             PdfAdapter(file),

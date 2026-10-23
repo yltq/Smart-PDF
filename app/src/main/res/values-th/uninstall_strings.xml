@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">ถอนการติดตั้ง</string><string name="shortcut_view">ดู</string><string name="shortcut_scan">สแกน</string>
+    <string name="uninstall_step_one_title">มาช่วยกันทำให้ดีขึ้น</string><string name="uninstall_step_one_text">มีบางอย่างใช้งานไม่ได้ใช่ไหม? เราพร้อมช่วยเหลือ</string>
+    <string name="uninstall_pdf_trouble">มีปัญหากับ PDF ใช่ไหม?</string><string name="uninstall_try_again">ลองอีกครั้ง</string><string name="uninstall_missing_feature">ขาดฟีเจอร์ที่ต้องการ?</string><string name="uninstall_discover_more">ดูเพิ่มเติม</string>
+    <string name="uninstall_give_another_try">ให้โอกาสเราอีกครั้ง</string><string name="uninstall_continue">ถอนการติดตั้งต่อ</string>
+    <string name="uninstall_step_two_title">ก่อนที่คุณจะไป…</string><string name="uninstall_step_two_text">เราควรปรับปรุงอะไร? เลือกได้มากกว่าหนึ่งข้อ</string>
+    <string name="uninstall_reason_hard_to_use">ใช้งานยาก</string><string name="uninstall_reason_ads">โฆษณามากเกินไป</string><string name="uninstall_reason_viewing">ดู PDF ได้ไม่ดี</string><string name="uninstall_reason_alerts">การแจ้งเตือนมากเกินไป</string><string name="uninstall_reason_editing">ตัวเลือกการแก้ไขไม่เพียงพอ</string><string name="uninstall_reason_phone_tools">ชอบเครื่องมือในโทรศัพท์มากกว่า</string>
+    <string name="uninstall_keep_app">ฉันจะลองใช้อีกครั้ง</string><string name="uninstall_anyway">ถอนการติดตั้งต่อไป</string>
+</resources>

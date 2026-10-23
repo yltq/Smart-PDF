@@ -17,10 +17,17 @@
             android:src="@drawable/ic_scan"
             android:stateListAnimator="@animator/press_scale" />
     </FrameLayout>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="68dp" android:layout_marginStart="10dp" android:layout_marginTop="4dp" android:layout_marginEnd="10dp" android:layout_marginBottom="8dp" android:orientation="horizontal" android:background="@drawable/bg_nav_bar" android:elevation="10dp" android:padding="5dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="68dp" android:layout_marginStart="10dp" android:layout_marginTop="4dp" android:layout_marginEnd="10dp" android:layout_marginBottom="4dp" android:orientation="horizontal" android:background="@drawable/bg_nav_bar" android:elevation="10dp" android:padding="5dp">
         <include android:id="@+id/navHome" layout="@layout/item_bottom_nav" />
         <include android:id="@+id/navRecent" layout="@layout/item_bottom_nav" />
         <include android:id="@+id/navCollection" layout="@layout/item_bottom_nav" />
         <include android:id="@+id/navSettings" layout="@layout/item_bottom_nav" />
     </LinearLayout>
+    <FrameLayout
+        android:id="@+id/homeBannerAd"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:gravity="center" />
 </LinearLayout>

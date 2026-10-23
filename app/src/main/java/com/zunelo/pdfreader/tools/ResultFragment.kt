@@ -19,8 +19,13 @@ import android.view.animation.DecelerateInterpolator
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.activity.OnBackPressedCallback
+import android.view.ViewGroup
+import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.SmartPdfAds
+import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 
-class ResultFragment : Fragment(R.layout.fragment_result) {
+class ResultFragment : Fragment(R.layout.fragment_result), PageAdRefreshable {
     companion object {
         private const val ARG_ACTION = "action"
         fun newInstance(item: DocumentItem, action: String) = ResultFragment().apply { arguments = Bundle().putDocument(item).apply { putString(ARG_ACTION, action) } }
@@ -28,6 +33,11 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val item = requireArguments().document() ?: return
         val action = requireArguments().getString(ARG_ACTION) ?: "processed"
+        when (action) {
+            "created" -> SmartPdfSignalHub.recordCustomSignal("home_create_success")
+            "merged" -> SmartPdfSignalHub.recordCustomSignal("merge_success_page")
+            "split" -> SmartPdfSignalHub.recordCustomSignal("split_success_page")
+        }
         val toolbar = view.findViewById<View>(R.id.toolbar)
         val horizontalInset = requireContext().dp(4)
         toolbar.setPaddingRelative(horizontalInset, toolbar.paddingTop, horizontalInset, toolbar.paddingBottom)
@@ -57,10 +67,18 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
         view.findViewById<View>(R.id.resultDocument).findViewById<View>(R.id.moreButton).visibility = View.GONE
         view.findViewById<View>(R.id.openResult).setOnClickListener { (requireActivity() as MainActivity).navigate(ViewerFragment.newInstance(item)) }
         view.findViewById<View>(R.id.returnHome).setOnClickListener { returnHome() }
+        if (savedInstanceState == null) {
+            SmartPdfAds.bindNative(requireActivity(), AdScenes.RESULT_NATIVE, view.findViewById(R.id.resultNativeAd))
+        }
         animateContent(view)
     }
 
-    private fun returnHome() { (requireActivity() as MainActivity).showRoot(HomeFragment.newInstance(0)) }
+    private fun returnHome() { (requireActivity() as MainActivity).returnHomeWithAd() }
+
+    override fun refreshPageAds() {
+        val container = view?.findViewById<ViewGroup>(R.id.resultNativeAd) ?: return
+        SmartPdfAds.bindNative(requireActivity(), AdScenes.RESULT_NATIVE, container)
+    }
 
     private fun animateContent(view: View) {
         val interpolator = DecelerateInterpolator()
@@ -79,5 +97,10 @@ class ResultFragment : Fragment(R.layout.fragment_result) {
             translationY = 12f * resources.displayMetrics.density
             animate().alpha(1f).translationY(0f).setStartDelay(90L).setDuration(260L).setInterpolator(interpolator).start()
         }
+    }
+
+    override fun onDestroyView() {
+        view?.findViewById<ViewGroup>(R.id.resultNativeAd)?.let(SmartPdfAds::release)
+        super.onDestroyView()
     }
 }

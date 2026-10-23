@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name" translatable="false">Smart PDF</string>
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="appsflyer_dev_key" translatable="false"></string>
+    <string name="facebook_app_id" translatable="false"></string>
+    <string name="facebook_client_token" translatable="false"></string>
     <string name="privacy_url" translatable="false">https://www.bing.com</string>
     <string name="storage_access_title">Access your documents</string>
     <string name="storage_access_message">Enable file access so Smart PDF can discover, open, and organize documents saved on this device.</string>

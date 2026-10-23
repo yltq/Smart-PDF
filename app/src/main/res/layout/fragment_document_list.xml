@@ -8,15 +8,52 @@
     android:paddingHorizontal="14dp"
     android:paddingTop="18dp">
 
-    <TextView
-        android:id="@+id/pageTitle"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:gravity="center_vertical"
-        android:letterSpacing="0.01"
-        android:textColor="@color/ink"
-        android:textSize="27sp"
-        android:textStyle="bold" />
+        android:layout_height="52dp">
+
+        <TextView
+            android:id="@+id/pageTitle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_vertical"
+            android:letterSpacing="0.01"
+            android:paddingEnd="48dp"
+            android:textColor="@color/ink"
+            android:textSize="27sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/pullToolsHint"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginEnd="44dp"
+            android:background="@drawable/bg_pull_tools_hint"
+            android:drawableEnd="@drawable/ic_chevron_down"
+            android:drawablePadding="4dp"
+            android:gravity="center"
+            android:paddingStart="11dp"
+            android:paddingEnd="8dp"
+            android:stateListAnimator="@animator/press_scale"
+            android:text="@string/pdf_tools_hint"
+            android:textColor="@color/ink_secondary"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/printTopAction"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_gravity="center_vertical|end"
+            android:background="@drawable/bg_nav_item"
+            android:contentDescription="@string/print_pdf"
+            android:padding="10dp"
+            android:src="@drawable/ic_print"
+            android:stateListAnimator="@animator/press_scale"
+            android:visibility="gone" />
+    </FrameLayout>
 
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
@@ -49,7 +86,7 @@
                     layout="@layout/item_tool_action" />
 
                 <include
-                    android:id="@+id/printAction"
+                    android:id="@+id/largeFileAction"
                     layout="@layout/item_tool_action" />
             </LinearLayout>
 
@@ -61,34 +98,55 @@
                 android:clipToPadding="false"
                 android:orientation="horizontal"
                 android:paddingVertical="11dp" />
+
+            <FrameLayout
+                android:id="@+id/tabNativeAd"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
         </com.google.android.material.appbar.AppBarLayout>
 
-        <FrameLayout
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/documentList"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginBottom="4dp"
             android:background="@drawable/bg_panel"
+            android:clipToPadding="false"
+            android:nestedScrollingEnabled="true"
+            android:paddingStart="5dp"
+            android:paddingTop="3dp"
+            android:paddingEnd="5dp"
+            android:paddingBottom="12dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/contentOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginBottom="4dp"
+            android:background="@android:color/transparent"
+            android:fillViewport="true"
+            android:overScrollMode="never"
             android:paddingHorizontal="5dp"
             android:paddingTop="3dp"
             app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/documentList"
+            <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:clipToPadding="false"
-                android:paddingBottom="12dp" />
+                android:layout_height="match_parent">
 
-            <include
-                android:id="@+id/emptyState"
-                layout="@layout/view_empty_state" />
+                <include
+                    android:id="@+id/emptyState"
+                    layout="@layout/view_empty_state" />
 
-            <ProgressBar
-                android:id="@+id/loading"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="center"
-                android:indeterminateTint="@color/brand_red" />
-        </FrameLayout>
+                <ProgressBar
+                    android:id="@+id/loading"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="@color/brand_red" />
+            </FrameLayout>
+        </androidx.core.widget.NestedScrollView>
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

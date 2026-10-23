@@ -118,8 +118,9 @@ class PdfMarkupFragment : Fragment(R.layout.fragment_pdf_markup) {
     }
 
     private fun save(name: String) {
+        val adStartedAt = (requireActivity() as MainActivity).beginCreationAd(com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF)
         val edits = markup.markups.toList(); ProcessingDialogFragment.newInstance(getString(R.string.saving_pdf)).show(parentFragmentManager, "markup_saving"); val context = requireContext().applicationContext
-        Thread { val result = runCatching { PdfTools.applyMarkups(context, item, edits, name) }; activity?.runOnUiThread { (parentFragmentManager.findFragmentByTag("markup_saving") as? ProcessingDialogFragment)?.dismissAllowingStateLoss(); result.onSuccess { (requireActivity() as MainActivity).navigate(ResultFragment.newInstance(it, "annotated")) }.onFailure { Toast.makeText(requireContext(), R.string.save_pdf_failed, Toast.LENGTH_SHORT).show() } } }.start()
+        Thread { val result = runCatching { PdfTools.applyMarkups(context, item, edits, name) }; activity?.runOnUiThread { (parentFragmentManager.findFragmentByTag("markup_saving") as? ProcessingDialogFragment)?.dismissAllowingStateLoss(); result.onSuccess { (requireActivity() as MainActivity).showCreationResult(it, "annotated", com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF, adStartedAt) }.onFailure { Toast.makeText(requireContext(), R.string.save_pdf_failed, Toast.LENGTH_SHORT).show() } } }.start()
     }
 
     override fun onDestroyView() { loader?.close(); loader = null; super.onDestroyView() }

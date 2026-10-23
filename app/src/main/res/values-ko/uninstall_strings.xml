@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_uninstall">삭제</string><string name="shortcut_view">보기</string><string name="shortcut_scan">스캔</string>
+    <string name="uninstall_step_one_title">더 나은 앱을 만들게요</string><string name="uninstall_step_one_text">불편한 점이 있나요? 해결을 도와드릴게요.</string>
+    <string name="uninstall_pdf_trouble">PDF 사용이 어려운가요?</string><string name="uninstall_try_again">다시 시도</string><string name="uninstall_missing_feature">필요한 기능이 없나요?</string><string name="uninstall_discover_more">더 알아보기</string>
+    <string name="uninstall_give_another_try">한 번 더 사용해 보기</string><string name="uninstall_continue">삭제 계속하기</string>
+    <string name="uninstall_step_two_title">떠나시기 전에…</string><string name="uninstall_step_two_text">개선할 점을 모두 선택해 주세요.</string>
+    <string name="uninstall_reason_hard_to_use">사용하기 어려움</string><string name="uninstall_reason_ads">광고가 너무 많음</string><string name="uninstall_reason_viewing">PDF 보기 품질이 낮음</string><string name="uninstall_reason_alerts">알림이 너무 많음</string><string name="uninstall_reason_editing">편집 기능이 부족함</string><string name="uninstall_reason_phone_tools">휴대전화 기본 도구가 더 좋음</string>
+    <string name="uninstall_keep_app">한 번 더 사용해 볼게요</string><string name="uninstall_anyway">그래도 삭제</string>
+</resources>

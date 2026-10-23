@@ -35,6 +35,7 @@ class PdfWatermarkDialogFragment : BottomSheetDialogFragment() {
         val host = requireActivity() as MainActivity
         val manager = parentFragmentManager
         val context = requireContext().applicationContext
+        val adStartedAt = host.beginCreationAd(com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF)
         val loading = ProcessingDialogFragment.newInstance(getString(R.string.adding_watermark))
         dismiss()
         loading.show(manager, "watermark_saving")
@@ -42,7 +43,7 @@ class PdfWatermarkDialogFragment : BottomSheetDialogFragment() {
             val result = runCatching { PdfTools.addWatermark(context, item, text) }
             host.runOnUiThread {
                 (manager.findFragmentByTag("watermark_saving") as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
-                result.onSuccess { host.navigate(ResultFragment.newInstance(it, "watermarked")) }
+                result.onSuccess { host.showCreationResult(it, "watermarked", com.zunelo.pdfreader.ads.AdScenes.CREATE_PDF, adStartedAt) }
                     .onFailure { Toast.makeText(host, R.string.save_pdf_failed, Toast.LENGTH_SHORT).show() }
             }
         }.start()
