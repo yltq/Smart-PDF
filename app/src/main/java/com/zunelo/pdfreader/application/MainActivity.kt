@@ -17,6 +17,7 @@ import com.zunelo.pdfreader.ads.AdScene
 import com.zunelo.pdfreader.ads.AdScenes
 import com.zunelo.pdfreader.ads.SmartPdfAds
 import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.ads.config.AdConfigRepository
 import com.zunelo.pdfreader.data.DocumentItem
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 
@@ -41,7 +42,6 @@ class MainActivity : AppCompatActivity() {
         private const val STATE_NEW_USER_FLOW = "state_new_user_flow"
         private const val PREFERENCES_ENTRY = "entry_flow"
         private const val KEY_UNINSTALL_BACKGROUND = "uninstall_background"
-        private const val HOT_START_INTERVAL_MILLIS = 3_000L
         const val ACTION_SHORTCUT_UNINSTALL = "com.zunelo.pdfreader.action.UNINSTALL"
         const val ACTION_SHORTCUT_VIEW = "com.zunelo.pdfreader.action.VIEW"
         const val ACTION_SHORTCUT_SCAN = "com.zunelo.pdfreader.action.SCAN"
@@ -136,7 +136,11 @@ class MainActivity : AppCompatActivity() {
             suppressNextForegroundAdRefresh = false
             return
         }
-        if (!forceRestart && backgroundDuration < HOT_START_INTERVAL_MILLIS) {
+        val hotStartGapMillis = AdConfigRepository.userConfig(this)
+            .adsSettings
+            .hotStartGapMillis
+            .coerceAtLeast(0L)
+        if (!forceRestart && (!returnedFromBackground || backgroundDuration < hotStartGapMillis)) {
             if (returnedFromBackground) scheduleVisiblePageAdRefresh()
             return
         }
@@ -324,26 +328,47 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showCreationResult(item: DocumentItem, action: String, scene: AdScene, startedAtMillis: Long) {
+        continueAfterCreationAd(
+            scene = scene,
+            startedAtMillis = startedAtMillis,
+            loadingMessage = getString(R.string.creating_pdf)
+        ) {
+            if (!isFinishing && !isDestroyed) navigate(ResultFragment.newInstance(item, action))
+        }
+    }
+
+    fun continueAfterCreationAd(
+        scene: AdScene,
+        startedAtMillis: Long,
+        loadingMessage: String,
+        onComplete: () -> Unit
+    ) {
         val tag = "creation_ad_wait"
-        ProcessingDialogFragment.newInstance(getString(R.string.creating_pdf)).show(supportFragmentManager, tag)
-        SmartPdfAds.load(scene)
+        ProcessingDialogFragment.newInstance(loadingMessage).show(supportFragmentManager, tag)
+        if (SmartPdfAds.isSceneEnabled(scene)) SmartPdfAds.load(scene)
         val handler = Handler(Looper.getMainLooper())
+        var finished = false
         lateinit var checkAd: Runnable
         fun finish(showAd: Boolean) {
+            if (finished) return
+            finished = true
             handler.removeCallbacks(checkAd)
             (supportFragmentManager.findFragmentByTag(tag) as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
-            val openResult = {
-                if (!isFinishing && !isDestroyed) navigate(ResultFragment.newInstance(item, action))
+            if (showAd) {
+                SmartPdfAds.show(this, scene, chanceAlreadyReported = true, onComplete = onComplete)
+            } else {
+                onComplete()
             }
-            if (showAd) SmartPdfAds.show(this, scene, chanceAlreadyReported = true, onComplete = openResult) else openResult()
         }
         checkAd = Runnable {
             val elapsed = SystemClock.elapsedRealtime() - startedAtMillis
+            val sceneEnabled = SmartPdfAds.isSceneEnabled(scene)
             when {
+                !sceneEnabled && elapsed >= 3_000L -> finish(false)
                 elapsed >= 3_000L && SmartPdfAds.isReady(scene) -> finish(true)
                 elapsed >= 8_000L -> finish(false)
                 else -> {
-                    SmartPdfAds.load(scene)
+                    if (sceneEnabled) SmartPdfAds.load(scene)
                     handler.postDelayed(checkAd, 200L)
                 }
             }

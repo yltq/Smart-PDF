@@ -2,6 +2,7 @@ package com.zunelo.pdfreader.telemetry
 
 import android.app.Application
 import android.content.Context
+import com.zunelo.pdfreader.config.AppRuntimeConfig
 import com.zunelo.pdfreader.telemetry.network.OkHttpManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +14,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 object CloakRepository {
     const val BLACKLISTED = "prefab"
     const val NORMAL = "galatea"
-    private const val ENDPOINT = "https://dear.filereadxsmartrkgiv.com/suave/betide/digit"
     private const val PREFERENCES = "tba_cloak"
     private const val KEY_RESULT = "cloak_result"
 
@@ -36,10 +36,11 @@ object CloakRepository {
     fun isBlacklisted(): Boolean = cachedResult() == BLACKLISTED
 
     fun fetchIfNeeded() {
-        if (!::application.isInitialized || cachedResult() != null || !requesting.compareAndSet(false, true)) return
+        val endpoint = AppRuntimeConfig.cloakEndpoint
+        if (endpoint.isBlank() || !::application.isInitialized || cachedResult() != null || !requesting.compareAndSet(false, true)) return
         scope.launch {
             val payload = SmartPdfSignalHub.cloakPayload()
-            val result = OkHttpManager.postJson(ENDPOINT) {
+            val result = OkHttpManager.postJson(endpoint) {
                 payload.put("elgin", System.currentTimeMillis()).toString()
             }?.let(::parseResult)
             if (result != null) {

@@ -2,7 +2,6 @@ package com.zunelo.pdfreader.ads
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,7 +18,6 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdValue
 import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.AdActivity
 import com.google.android.gms.ads.ResponseInfo
 import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
@@ -35,10 +33,10 @@ import com.zunelo.pdfreader.ads.config.AdConfigRepository
 import com.zunelo.pdfreader.ads.config.AdLimitPolicy
 import com.zunelo.pdfreader.ads.config.AdSlots
 import com.zunelo.pdfreader.ads.config.AdUnitConfig
+import com.zunelo.pdfreader.guard.TestAdState
 import com.zunelo.pdfreader.telemetry.AdValueDispatcher
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 import java.util.WeakHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 data class AdScene(val slotKey: String, val adPosId: String)
 
@@ -49,6 +47,7 @@ interface PageAdRefreshable {
 object AdScenes {
     val LAUNCH = AdScene(AdSlots.LAUNCH, "ad_open_launch")
     val CREATE_PDF = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_create_int")
+    val CLEAN_FILES = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_clean_int")
     val MERGE_PDF = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_merge_int")
     val SPLIT_PDF = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_split_int")
     val FILE_ENTRY = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_file_int")
@@ -57,13 +56,30 @@ object AdScenes {
     val NEW_INTRO_INTERSTITIAL = AdScene(AdSlots.BACK_INTERSTITIAL, "new_intro_int")
     val UNINSTALL_INTERSTITIAL = AdScene(AdSlots.BACK_INTERSTITIAL, "page_uninstall_int")
     val HOME_NATIVE = AdScene(AdSlots.MAIN_NATIVE, "ad_main_nat")
-    val RESULT_NATIVE = AdScene(AdSlots.SCAN_NATIVE, "ad_scan_nat")
+    val RESULT_NATIVE = AdScene(AdSlots.SCAN_NATIVE, "ad_result_nat")
     val NEW_LANGUAGE_NATIVE = AdScene(AdSlots.MAIN_NATIVE, "new_langua_nat")
     val NEW_INTRO_NATIVE = AdScene(AdSlots.SCAN_NATIVE, "new_intro_nat")
     val UNINSTALL_NATIVE_ONE = AdScene(AdSlots.MAIN_NATIVE, "page_uninstall_nat1")
     val UNINSTALL_NATIVE_TWO = AdScene(AdSlots.SCAN_NATIVE, "page_uninstall_nat2")
     val HOME_BANNER = AdScene(AdSlots.MAIN_BANNER, "ad_main_ban")
-    val preloadOrder = listOf(LAUNCH, CREATE_PDF, BACK_HOME, HOME_NATIVE, RESULT_NATIVE)
+    val preloadOrder = listOf(
+        LAUNCH,
+        CREATE_PDF,
+        CLEAN_FILES,
+        MERGE_PDF,
+        SPLIT_PDF,
+        FILE_ENTRY,
+        NEW_LANGUAGE_INTERSTITIAL,
+        BACK_HOME,
+        NEW_INTRO_INTERSTITIAL,
+        UNINSTALL_INTERSTITIAL,
+        HOME_NATIVE,
+        NEW_LANGUAGE_NATIVE,
+        UNINSTALL_NATIVE_ONE,
+        RESULT_NATIVE,
+        NEW_INTRO_NATIVE,
+        UNINSTALL_NATIVE_TWO
+    )
 }
 
 object SmartPdfAds {
@@ -72,9 +88,6 @@ object SmartPdfAds {
     private const val FORMAT_INTERSTITIAL = "int"
     private const val FORMAT_NATIVE = "nat"
     private const val FORMAT_BANNER = "ban"
-    private const val TEST_PREFERENCES = "smart_pdf_ad_probe"
-    private const val TEST_DECISION_KEY = "native_test_result"
-
     private data class AdExposure(
         var scene: AdScene,
         var source: String = scene.adPosId,
@@ -94,42 +107,55 @@ object SmartPdfAds {
     private val bannerBindTokens = WeakHashMap<ViewGroup, Any>()
     private var application: Application? = null
     private var fullScreenShowing = false
-    private val testSignalSent = AtomicBoolean(false)
-    private var testAdLifecycleRegistered = false
-
+    private var lastFullscreenClosedAt = 0L
     fun initialize(application: Application) {
         this.application = application
         AdLimitPolicy.initialize(application) { clear() }
-        registerTestAdLifecycle(application)
+        TestAdState.initialize(application)
     }
 
-    fun preloadAll() = onMain {
-        AdScenes.preloadOrder.distinctBy(AdScene::slotKey).forEach(::load)
+    fun preloadAll(launchSource: String = AdScenes.LAUNCH.adPosId) = onMain {
+        AdScenes.preloadOrder.forEach { scene ->
+            load(scene, if (scene === AdScenes.LAUNCH) launchSource else scene.adPosId)
+        }
     }
 
-    fun load(scene: AdScene, onLoaded: ((Boolean) -> Unit)? = null) = onMain {
-        if (!AdLimitPolicy.canServeAds()) {
+    fun load(
+        scene: AdScene,
+        adSource: String = scene.adPosId,
+        onLoaded: ((Boolean) -> Unit)? = null
+    ) = onMain {
+        if (!AdLimitPolicy.canServeAds() || !canRequest(scene)) {
             onLoaded?.invoke(false)
             return@onMain
         }
-        loadCached(scene, cacheableFormats(scene), onLoaded)
+        loadCached(scene, cacheableFormats(scene), adSource, onLoaded)
     }
 
     fun isReady(scene: AdScene): Boolean {
         check(Looper.myLooper() == Looper.getMainLooper())
-        if (!AdLimitPolicy.canServeAds()) return false
+        if (!AdLimitPolicy.canServeAds() || !canDisplay(scene) || !canShowFullScreenNow(scene)) return false
         return peekValidCache(scene.slotKey) != null
     }
 
     fun isLoading(scene: AdScene): Boolean {
         check(Looper.myLooper() == Looper.getMainLooper())
-        if (!AdLimitPolicy.canServeAds()) return false
+        if (!AdLimitPolicy.canServeAds() || !canDisplay(scene)) return false
         return scene.slotKey in loadingSlots
     }
 
     fun isFullScreenShowing(): Boolean {
         check(Looper.myLooper() == Looper.getMainLooper())
         return fullScreenShowing
+    }
+
+    fun resetFullScreenInterval() = onMain {
+        lastFullscreenClosedAt = 0L
+    }
+
+    fun isSceneEnabled(scene: AdScene): Boolean {
+        check(Looper.myLooper() == Looper.getMainLooper())
+        return AdLimitPolicy.canServeAds() && canDisplay(scene)
     }
 
     fun show(
@@ -139,7 +165,18 @@ object SmartPdfAds {
         chanceAlreadyReported: Boolean = false,
         onComplete: () -> Unit
     ) = onMain {
-        if (!AdLimitPolicy.canServeAds() || fullScreenShowing || activity.isFinishing || activity.isDestroyed) {
+        if (
+            !AdLimitPolicy.canServeAds() ||
+            !canDisplay(scene) ||
+            fullScreenShowing ||
+            activity.isFinishing ||
+            activity.isDestroyed
+        ) {
+            onComplete()
+            return@onMain
+        }
+        if (!canShowFullScreenNow(scene)) {
+            load(scene, adSource)
             onComplete()
             return@onMain
         }
@@ -148,7 +185,7 @@ object SmartPdfAds {
         when (val ad = cached?.value) {
             is AppOpenAd, is InterstitialAd -> showFullScreen(activity, scene, adSource, cached.unit, ad, onComplete)
             else -> {
-                load(scene)
+                load(scene, adSource)
                 onComplete()
             }
         }
@@ -167,6 +204,12 @@ object SmartPdfAds {
             onResult(false)
             return@onMain
         }
+        if (!canDisplay(scene)) {
+            release(container)
+            if (canRequest(scene)) loadCached(scene, setOf(FORMAT_NATIVE))
+            onResult(false)
+            return@onMain
+        }
         reportChanceIfEligible(scene, scene.adPosId)
         val ready = takeValidCache(scene.slotKey, FORMAT_NATIVE)
         val readyAd = ready?.value as? NativeAd
@@ -177,7 +220,17 @@ object SmartPdfAds {
             return@onMain
         }
         loadCached(scene, setOf(FORMAT_NATIVE)) { loaded ->
-            if (!loaded || activity.isFinishing || activity.isDestroyed || nativeBindTokens[container] !== token) {
+            if (
+                !loaded ||
+                activity.isFinishing ||
+                activity.isDestroyed ||
+                nativeBindTokens[container] !== token
+            ) {
+                onResult(false)
+                return@loadCached
+            }
+            if (!canDisplay(scene)) {
+                release(container)
                 onResult(false)
                 return@loadCached
             }
@@ -200,6 +253,11 @@ object SmartPdfAds {
         val token = Any()
         bannerBindTokens[container] = token
         if (!AdLimitPolicy.canServeAds() || activity.isFinishing || activity.isDestroyed) {
+            release(container)
+            onResult(false)
+            return@onMain
+        }
+        if (!canDisplay(scene)) {
             release(container)
             onResult(false)
             return@onMain
@@ -246,8 +304,13 @@ object SmartPdfAds {
         }
     }
 
-    private fun loadCached(scene: AdScene, formats: Set<String>, onLoaded: ((Boolean) -> Unit)? = null) {
-        if (!AdLimitPolicy.canServeAds()) {
+    private fun loadCached(
+        scene: AdScene,
+        formats: Set<String>,
+        adSource: String = scene.adPosId,
+        onLoaded: ((Boolean) -> Unit)? = null
+    ) {
+        if (!AdLimitPolicy.canServeAds() || !canRequest(scene)) {
             onLoaded?.invoke(false)
             return
         }
@@ -263,11 +326,17 @@ object SmartPdfAds {
             finishLoad(scene.slotKey, false)
             return
         }
-        loadCandidate(app, scene, units, 0)
+        loadCandidate(app, scene, adSource, units, 0)
     }
 
-    private fun loadCandidate(application: Application, scene: AdScene, units: List<AdUnitConfig>, index: Int) {
-        if (!AdLimitPolicy.canServeAds()) {
+    private fun loadCandidate(
+        application: Application,
+        scene: AdScene,
+        adSource: String,
+        units: List<AdUnitConfig>,
+        index: Int
+    ) {
+        if (!AdLimitPolicy.canServeAds() || !canRequest(scene)) {
             finishLoad(scene.slotKey, false)
             return
         }
@@ -279,51 +348,51 @@ object SmartPdfAds {
         val request = AdRequest.Builder().build()
         when (unit.format) {
             FORMAT_APP_OPEN -> {
-                reportRequest(scene)
+                reportRequest(scene, adSource)
                 AppOpenAd.load(application, unit.unitId, request, object : AppOpenAd.AppOpenAdLoadCallback() {
-                    override fun onAdLoaded(ad: AppOpenAd) = cacheLoaded(scene, unit, ad)
+                    override fun onAdLoaded(ad: AppOpenAd) = cacheLoaded(scene, adSource, unit, ad)
                     override fun onAdFailedToLoad(error: LoadAdError) {
                         reportLoadFailure(error)
-                        loadCandidate(application, scene, units, index + 1)
+                        loadCandidate(application, scene, adSource, units, index + 1)
                     }
                 })
             }
             FORMAT_INTERSTITIAL -> {
-                reportRequest(scene)
+                reportRequest(scene, adSource)
                 InterstitialAd.load(application, unit.unitId, request, object : InterstitialAdLoadCallback() {
-                    override fun onAdLoaded(ad: InterstitialAd) = cacheLoaded(scene, unit, ad)
+                    override fun onAdLoaded(ad: InterstitialAd) = cacheLoaded(scene, adSource, unit, ad)
                     override fun onAdFailedToLoad(error: LoadAdError) {
                         reportLoadFailure(error)
-                        loadCandidate(application, scene, units, index + 1)
+                        loadCandidate(application, scene, adSource, units, index + 1)
                     }
                 })
             }
             FORMAT_NATIVE -> {
-                val exposure = AdExposure(scene)
+                val exposure = AdExposure(scene, adSource)
                 val loader = AdLoader.Builder(application, unit.unitId)
                     .forNativeAd { ad ->
                         nativeExposures[ad] = exposure
-                        inspectNativeTestSignal(application, ad.headline)
-                        cacheLoaded(scene, unit, ad)
+                        TestAdState.inspectNativeHeadline(application, ad.headline)
+                        cacheLoaded(scene, adSource, unit, ad)
                     }
                     .withNativeAdOptions(NativeAdOptions.Builder().build())
                     .withAdListener(object : com.google.android.gms.ads.AdListener() {
                         override fun onAdFailedToLoad(error: LoadAdError) {
                             reportLoadFailure(error)
-                            loadCandidate(application, scene, units, index + 1)
+                            loadCandidate(application, scene, adSource, units, index + 1)
                         }
                         override fun onAdImpression() = recordImpression(exposure)
                         override fun onAdClicked() = recordClick(exposure)
                     }).build()
-                reportRequest(scene)
+                reportRequest(scene, adSource)
                 loader.loadAd(request)
             }
-            else -> loadCandidate(application, scene, units, index + 1)
+            else -> loadCandidate(application, scene, adSource, units, index + 1)
         }
     }
 
-    private fun cacheLoaded(scene: AdScene, unit: AdUnitConfig, ad: Any) {
-        reportFill(scene)
+    private fun cacheLoaded(scene: AdScene, adSource: String, unit: AdUnitConfig, ad: Any) {
+        reportFill(scene, adSource)
         if (!AdLimitPolicy.canServeAds()) {
             (ad as? NativeAd)?.let { nativeExposures.remove(it); it.destroy() }
             finishLoad(scene.slotKey, false)
@@ -345,9 +414,10 @@ object SmartPdfAds {
         }
         fullScreenShowing = true
         bindPaidEvent(ad, scene, unit)
-        load(scene)
+        load(scene, adSource)
         val exposure = AdExposure(scene, adSource)
         var completed = false
+        var adShown = false
         fun complete() {
             if (completed) return
             completed = true
@@ -355,12 +425,20 @@ object SmartPdfAds {
             onComplete()
         }
         val callback = object : FullScreenContentCallback() {
-            override fun onAdDismissedFullScreenContent() = complete()
+            override fun onAdShowedFullScreenContent() {
+                adShown = true
+            }
+            override fun onAdDismissedFullScreenContent() {
+                if (adShown) lastFullscreenClosedAt = SystemClock.elapsedRealtime()
+                complete()
+            }
             override fun onAdFailedToShowFullScreenContent(error: com.google.android.gms.ads.AdError) {
                 reportShowFailure(error)
                 complete()
             }
-            override fun onAdImpression() = recordImpression(exposure)
+            override fun onAdImpression() {
+                recordImpression(exposure)
+            }
             override fun onAdClicked() = recordClick(exposure)
         }
         when (ad) {
@@ -391,6 +469,7 @@ object SmartPdfAds {
         if (
             unit == null ||
             !AdLimitPolicy.canServeAds() ||
+            !canDisplay(scene) ||
             activity.isFinishing ||
             activity.isDestroyed ||
             bannerBindTokens[container] !== token
@@ -407,7 +486,11 @@ object SmartPdfAds {
             adListener = object : com.google.android.gms.ads.AdListener() {
                 override fun onAdLoaded() {
                     reportFill(scene)
-                    if (!AdLimitPolicy.canServeAds() || bannerBindTokens[container] !== token) {
+                    if (
+                        !AdLimitPolicy.canServeAds() ||
+                        !canDisplay(scene) ||
+                        bannerBindTokens[container] !== token
+                    ) {
                         destroy()
                         onResult(false)
                         return
@@ -557,18 +640,18 @@ object SmartPdfAds {
         (cached.value as? NativeAd)?.let { nativeExposures.remove(it); it.destroy() }
     }
 
-    private fun reportRequest(scene: AdScene) = SmartPdfSignalHub.recordCustomSignal(
+    private fun reportRequest(scene: AdScene, source: String = scene.adPosId) = SmartPdfSignalHub.recordCustomSignal(
         "app_ad_request",
-        mapOf("ad_pos_id" to scene.adPosId)
+        sceneProperties(scene, source)
     )
 
-    private fun reportFill(scene: AdScene) = SmartPdfSignalHub.recordCustomSignal(
+    private fun reportFill(scene: AdScene, source: String = scene.adPosId) = SmartPdfSignalHub.recordCustomSignal(
         "app_ad_fill",
-        mapOf("ad_pos_id" to scene.adPosId)
+        sceneProperties(scene, source)
     )
 
     private fun reportChanceIfEligible(scene: AdScene, source: String) {
-        if (!AdLimitPolicy.canServeAds() || candidates(scene.slotKey).isEmpty()) return
+        if (!AdLimitPolicy.canServeAds() || !canDisplay(scene) || candidates(scene.slotKey).isEmpty()) return
         SmartPdfSignalHub.recordCustomSignal("app_ad_chance", sceneProperties(scene, source))
     }
 
@@ -591,10 +674,7 @@ object SmartPdfAds {
         AdLimitPolicy.recordClick()
         SmartPdfSignalHub.recordCustomSignal(
             "app_ad_impression_click",
-            mapOf(
-                "ad_pos_id" to exposure.scene.adPosId,
-                "show_to_click_s" to elapsed
-            )
+            sceneProperties(exposure.scene, exposure.source) + ("show_to_click_s" to elapsed)
         )
     }
 
@@ -615,83 +695,37 @@ object SmartPdfAds {
         "ad_source" to source.ifBlank { scene.adPosId }
     )
 
-    private fun inspectNativeTestSignal(context: Context, headline: String?) {
-        val saved = storedTestDecision(context)
-        if (saved == true) {
-            reportTestSignalOnce()
-            return
-        }
-        if (saved == false) return
-        val title = headline?.trim().orEmpty()
-        val localizedPrefix = runCatching {
-            val identifier = context.resources.getIdentifier("s7", "string", "com.google.android.gms.ads.impl")
-            if (identifier == 0) "" else context.getString(identifier).trim()
-        }.getOrDefault("")
-        val isTest = sequenceOf("Test Ad", localizedPrefix)
-            .filter(String::isNotBlank)
-            .any { prefix -> title.regionMatches(0, prefix, 0, prefix.length, ignoreCase = true) }
-        saveTestDecision(context, isTest)
-        if (isTest) reportTestSignalOnce()
+    private fun canRequest(scene: AdScene): Boolean {
+        val app = application ?: return false
+        if (!AdConfigRepository.isAdSceneBlocked(app, scene.adPosId)) return true
+        return isNativeScene(scene) && TestAdState.decision(app) == null
     }
 
-    private fun registerTestAdLifecycle(application: Application) {
-        if (testAdLifecycleRegistered) return
-        testAdLifecycleRegistered = true
-        application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
-            override fun onActivityStarted(activity: Activity) = inspectFullScreenTestSignal(activity)
-            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = Unit
-            override fun onActivityResumed(activity: Activity) = Unit
-            override fun onActivityPaused(activity: Activity) = Unit
-            override fun onActivityStopped(activity: Activity) = Unit
-            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
-            override fun onActivityDestroyed(activity: Activity) = Unit
-        })
+    private fun canDisplay(scene: AdScene): Boolean {
+        val app = application ?: return false
+        return !AdConfigRepository.isAdSceneBlocked(app, scene.adPosId)
     }
 
-    private fun inspectFullScreenTestSignal(activity: Activity) {
-        if (activity !is AdActivity || storedTestDecision(activity) != null) return
-        val root = activity.findViewById<ViewGroup>(android.R.id.content) ?: return
-        val inspect = Runnable {
-            if (storedTestDecision(activity) == null && root.containsTextView()) {
-                saveTestDecision(activity, true)
-                reportTestSignalOnce()
-            }
-        }
-        inspect.run()
-        root.post(inspect)
+    private fun canShowFullScreenNow(scene: AdScene): Boolean {
+        if (
+            !isFullScreenScene(scene) ||
+            scene.adPosId == AdScenes.LAUNCH.adPosId ||
+            lastFullscreenClosedAt == 0L
+        ) return true
+        val app = application ?: return false
+        val gapMillis = AdConfigRepository.userConfig(app)
+            .adsSettings
+            .fullscreenGapMillis
+            .coerceAtLeast(0L)
+        return SystemClock.elapsedRealtime() - lastFullscreenClosedAt >= gapMillis
     }
 
-    private fun ViewGroup.containsTextView(): Boolean {
-        for (index in 0 until childCount) {
-            when (val child = getChildAt(index)) {
-                is TextView -> return true
-                is ViewGroup -> if (child.containsTextView()) return true
-            }
-        }
-        return false
-    }
+    private fun isFullScreenScene(scene: AdScene): Boolean = scene.slotKey == AdSlots.LAUNCH ||
+        scene.slotKey == AdSlots.SCAN_INTERSTITIAL ||
+        scene.slotKey == AdSlots.BACK_INTERSTITIAL
 
-    private fun storedTestDecision(context: Context): Boolean? {
-        val preferences = context.applicationContext.getSharedPreferences(TEST_PREFERENCES, Context.MODE_PRIVATE)
-        return if (preferences.contains(TEST_DECISION_KEY)) {
-            preferences.getBoolean(TEST_DECISION_KEY, false)
-        } else {
-            null
-        }
-    }
-
-    private fun saveTestDecision(context: Context, isTest: Boolean) {
-        context.applicationContext.getSharedPreferences(TEST_PREFERENCES, Context.MODE_PRIVATE)
-            .edit()
-            .putBoolean(TEST_DECISION_KEY, isTest)
-            .apply()
-    }
-
-    private fun reportTestSignalOnce() {
-        if (testSignalSent.compareAndSet(false, true)) {
-            SmartPdfSignalHub.recordCustomSignal("ad_test")
-        }
-    }
+    private fun isNativeScene(scene: AdScene): Boolean =
+        scene.slotKey == AdSlots.MAIN_NATIVE || scene.slotKey == AdSlots.SCAN_NATIVE
 
     private fun onMain(action: () -> Unit) {
         if (Looper.myLooper() == Looper.getMainLooper()) action() else mainHandler.post(action)

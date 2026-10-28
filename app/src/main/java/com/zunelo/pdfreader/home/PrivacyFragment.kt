@@ -1,6 +1,7 @@
 package com.zunelo.pdfreader.home
 
 import com.zunelo.pdfreader.R
+import com.zunelo.pdfreader.config.AppRuntimeConfig
 import com.zunelo.pdfreader.application.*
 import com.zunelo.pdfreader.common.*
 import com.zunelo.pdfreader.data.*
@@ -28,6 +29,6 @@ class PrivacyFragment : Fragment(R.layout.fragment_privacy) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val toolbar = view.findViewById<View>(R.id.toolbar); toolbar.findViewById<TextView>(R.id.toolbarTitle).setText(R.string.privacy_policy); toolbar.findViewById<View>(R.id.backButton).setOnClickListener { (requireActivity() as MainActivity).back() }
         val progress = view.findViewById<ProgressBar>(R.id.webProgress)
-        view.findViewById<WebView>(R.id.privacyWeb).apply { settings.javaScriptEnabled = true; settings.domStorageEnabled = true; webViewClient = WebViewClient(); webChromeClient = object : WebChromeClient() { override fun onProgressChanged(webView: WebView?, value: Int) { progress.progress = value; progress.visibility = if (value >= 100) View.GONE else View.VISIBLE } }; loadUrl(getString(R.string.privacy_url)) }
+        view.findViewById<WebView>(R.id.privacyWeb).apply { settings.javaScriptEnabled = true; settings.domStorageEnabled = true; webViewClient = WebViewClient(); webChromeClient = object : WebChromeClient() { override fun onProgressChanged(webView: WebView?, value: Int) { progress.progress = value; progress.visibility = if (value >= 100) View.GONE else View.VISIBLE } }; loadUrl(AppRuntimeConfig.privacyUrl.ifBlank { "about:blank" }) }
     }
 }

@@ -41,40 +41,32 @@ class LargeFileAdapter(
         private val icon = view.findViewById<ImageView>(R.id.largeFileIcon)
         private val name = view.findViewById<TextView>(R.id.largeFileName)
         private val details = view.findViewById<TextView>(R.id.largeFileDetails)
-        private val location = view.findViewById<TextView>(R.id.largeFileLocation)
-        private val type = view.findViewById<TextView>(R.id.largeFileType)
         private val selection = view.findViewById<ImageView>(R.id.largeFileSelection)
 
         fun bind(item: LargeFileItem, selectionOnly: Boolean) {
             val selected = selectedPaths.contains(item.path)
+            selection.animate().cancel()
             selection.setImageResource(if (selected) R.drawable.ic_selection_selected else R.drawable.ic_selection_unselected)
             itemView.isSelected = selected
-            if (selectionOnly) return
+            if (selectionOnly) {
+                selection.alpha = 0f
+                selection.scaleX = .76f
+                selection.scaleY = .76f
+                selection.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(170L).start()
+                return
+            }
+            selection.alpha = 1f
+            selection.scaleX = 1f
+            selection.scaleY = 1f
             val context = itemView.context
-            icon.imageTintList = ColorStateList.valueOf(categoryColor(item.category))
+            icon.setImageResource(LargeFileVisuals.icon(item.category))
+            icon.imageTintList = ColorStateList.valueOf(LargeFileVisuals.color(item.category))
             name.text = item.name
             val date = if (item.modified > 0L) {
                 DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(item.modified))
             } else context.getString(R.string.unknown_date)
             details.text = context.getString(R.string.large_file_details, DocumentStore.formatSize(item.size), date)
-            location.text = item.path.substringBeforeLast('/', context.getString(R.string.large_file_storage))
-            type.setText(item.category.labelRes)
-            itemView.setOnClickListener {
-                onSelectionChanged(item)
-                itemView.animate().cancel()
-                itemView.scaleX = .985f
-                itemView.scaleY = .985f
-                itemView.animate().scaleX(1f).scaleY(1f).setDuration(150L).start()
-            }
-        }
-
-        private fun categoryColor(category: LargeFileCategory): Int = when (category) {
-            LargeFileCategory.DOCUMENT -> 0xFFE91922.toInt()
-            LargeFileCategory.IMAGE -> 0xFF7657D6.toInt()
-            LargeFileCategory.VIDEO -> 0xFFE05F83.toInt()
-            LargeFileCategory.AUDIO -> 0xFF258E70.toInt()
-            LargeFileCategory.ARCHIVE -> 0xFFC77B20.toInt()
-            LargeFileCategory.OTHER -> 0xFF697080.toInt()
+            itemView.setOnClickListener { onSelectionChanged(item) }
         }
     }
 

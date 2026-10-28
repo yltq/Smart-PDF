@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import com.zunelo.pdfreader.uninstall.UninstallStepOneFragment
 import com.zunelo.pdfreader.ads.AdScenes
 import com.zunelo.pdfreader.ads.SmartPdfAds
+import com.zunelo.pdfreader.ads.config.AdConfigRepository
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 
 class SplashFragment : Fragment(R.layout.fragment_splash) {
@@ -33,7 +34,6 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
         private const val ARG_NEW_USER_FLOW = "new_user_flow"
         private const val ARG_DESTINATION = "destination"
         private const val ARG_AD_SOURCE = "ad_source"
-        private const val MINIMUM_STARTUP_DURATION = 3_000L
         private const val MAXIMUM_AD_WAIT_DURATION = 15_000L
         private const val AD_POLL_INTERVAL = 200L
         const val DESTINATION_HOME = "home"
@@ -71,7 +71,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
     private var resumeSequence = 0
     private var handledResumeSequence = -1
     private var launchAdStartedAt = 0L
-    private var visibleAtMillis = 0L
+    private var launchMinWaitMillis = 0L
     private var launchAdShowing = false
     private var skipNextResumeAd = false
     private val launchAdPollAction = Runnable { requestLaunchAd() }
@@ -82,6 +82,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {}
+        SmartPdfAds.resetFullScreenInterval()
         SmartPdfSignalHub.reportSession()
         scene = view.findViewById(R.id.wonderlandScene)
         logo = view.findViewById(R.id.splashLogo)
@@ -95,13 +96,13 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
         title.translationY = requireContext().dp(12).toFloat()
         title.animate().alpha(1f).translationY(0f).setStartDelay(280L).setDuration(520L).start()
         prepareStartupAdvertising()
-        beginStartupFlow(view)
     }
 
     private fun prepareStartupAdvertising() {
         val firstColdStart = arguments?.getBoolean(ARG_NEW_USER_FLOW) == true
         StartupConsentCoordinator.prepare(requireActivity(), firstColdStart) {
             if (!isAdded || view == null) return@prepare
+            beginStartupAdTiming()
             viewLifecycleOwner.lifecycleScope.launch {
                 (requireActivity().application as SmartPdfApplication).awaitMobileAdsInitialization()
                 startupAdGateReady = true
@@ -114,20 +115,37 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
         if (!startupAdGateReady || !isResumed || handledResumeSequence == resumeSequence) return
         handledResumeSequence = resumeSequence
         startupAdvertisingComplete = false
-        launchAdStartedAt = SystemClock.elapsedRealtime()
+        if (launchAdStartedAt == 0L) beginStartupAdTiming()
+        launchMinWaitMillis = AdConfigRepository.userConfig(requireContext())
+            .adsSettings
+            .loadMinWaitMillis
+            .coerceAtLeast(0L)
+        val elapsed = SystemClock.elapsedRealtime() - launchAdStartedAt
+        startupReady = elapsed >= launchMinWaitMillis
+        view?.removeCallbacks(startupReadyAction)
+        if (!startupReady) {
+            view?.postDelayed(startupReadyAction, launchMinWaitMillis - elapsed)
+        }
         SmartPdfAds.markDisplayChance(AdScenes.LAUNCH, launchSource())
-        SmartPdfAds.preloadAll()
+        SmartPdfAds.preloadAll(launchSource())
         requestLaunchAd()
+    }
+
+    private fun beginStartupAdTiming() {
+        if (launchAdStartedAt != 0L || !isAdded) return
+        launchAdStartedAt = SystemClock.elapsedRealtime()
+        startupReady = false
     }
 
     private fun requestLaunchAd() {
         if (!isAdded || !isResumed || startupAdvertisingComplete) return
-        SmartPdfAds.load(AdScenes.LAUNCH)
+        SmartPdfAds.load(AdScenes.LAUNCH, launchSource())
         val now = SystemClock.elapsedRealtime()
         val adWaitElapsed = now - launchAdStartedAt
-        val visibleElapsed = now - visibleAtMillis
         when {
-            visibleElapsed >= MINIMUM_STARTUP_DURATION && SmartPdfAds.isReady(AdScenes.LAUNCH) -> {
+            adWaitElapsed >= launchMinWaitMillis && SmartPdfAds.isReady(AdScenes.LAUNCH) -> {
+                startupReady = true
+                view?.removeCallbacks(startupReadyAction)
                 launchAdShowing = true
                 SmartPdfAds.show(
                     requireActivity(),
@@ -142,15 +160,13 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
                 }
             }
             adWaitElapsed >= MAXIMUM_AD_WAIT_DURATION -> {
+                startupReady = true
+                view?.removeCallbacks(startupReadyAction)
                 startupAdvertisingComplete = true
                 attemptExit()
             }
             else -> view?.postDelayed(launchAdPollAction, AD_POLL_INTERVAL)
         }
-    }
-
-    private fun beginStartupFlow(root: View) {
-        root.postDelayed(startupReadyAction, MINIMUM_STARTUP_DURATION)
     }
 
     private fun attemptExit() {
@@ -180,7 +196,6 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
 
     override fun onResume() {
         super.onResume()
-        visibleAtMillis = SystemClock.elapsedRealtime()
         resumeSequence++
         if (::scene.isInitialized && !exitStarted) scene.start()
         if (skipNextResumeAd) {

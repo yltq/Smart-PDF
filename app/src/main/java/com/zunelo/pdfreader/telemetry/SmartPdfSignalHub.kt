@@ -6,12 +6,16 @@ import android.os.Build
 import android.os.Bundle
 import com.android.installreferrer.api.InstallReferrerClient
 import com.android.installreferrer.api.InstallReferrerStateListener
+import com.android.installreferrer.api.ReferrerDetails
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.zunelo.pdfreader.BuildConfig
+import com.zunelo.pdfreader.config.AppRuntimeConfig
 import com.zunelo.pdfreader.telemetry.network.OkHttpManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.Locale
@@ -19,8 +23,9 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 
 object SmartPdfSignalHub {
-    private const val TEST_ENDPOINT = "https://test-oxide.filereadxsmartrkgiv.com/emeritus/mizar"
-    private const val RELEASE_ENDPOINT = "https://oxide.filereadxsmartrkgiv.com/asbestos/likewise/prelude"
+    private const val RAPID_REFERRER_RETRY_LIMIT = 10
+    private const val RAPID_REFERRER_RETRY_MILLIS = 2_000L
+    private const val BACKGROUND_REFERRER_RETRY_MILLIS = 5 * 60_000L
     private const val PREFERENCES = "tba_signal"
     private const val KEY_STABLE_ID = "stable_id"
     private const val KEY_INSTALL_REPORTED = "install_reported"
@@ -31,10 +36,14 @@ object SmartPdfSignalHub {
     private const val KEY_INSTALL_CLIENT = "install_client"
     private const val KEY_CLICK_SERVER = "click_server"
     private const val KEY_INSTALL_SERVER = "install_server"
+    private const val KEY_BACK_REFERRER_TOKEN = "back_referrer_token"
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val referrerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val booted = AtomicBoolean(false)
     private val installWorkInFlight = AtomicBoolean(false)
+    private var referrerFailedAttempts = 0
+    private var referrerRetryJob: Job? = null
     private lateinit var application: Application
 
     private val preferences by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -57,6 +66,16 @@ object SmartPdfSignalHub {
     fun reportSession() {
         reportInstallIfNeeded()
         upload(commonPayload().put("etc", JSONObject()))
+    }
+
+    fun installReferrer(): String {
+        if (!booted.get()) return ""
+        return preferences.getString(KEY_REFERRER, "").orEmpty()
+    }
+
+    internal fun saveBackReferrerToken(token: String) {
+        if (!booted.get() || token.isBlank()) return
+        preferences.edit().putString(KEY_BACK_REFERRER_TOKEN, token).apply()
     }
 
     fun recordCustomSignal(signalName: String, attributes: Map<String, Any?> = emptyMap()) {
@@ -133,46 +152,77 @@ object SmartPdfSignalHub {
         }
         val client = runCatching { InstallReferrerClient.newBuilder(application).build() }
             .getOrElse {
-                installWorkInFlight.set(false)
+                finishReferrerAttempt()
                 return
             }
+        val attemptFinished = AtomicBoolean(false)
         val listener = object : InstallReferrerStateListener {
             override fun onInstallReferrerSetupFinished(responseCode: Int) {
-                if (responseCode != InstallReferrerClient.InstallReferrerResponse.OK) {
-                    runCatching { client.endConnection() }
-                    installWorkInFlight.set(false)
-                    return
+                val details = if (
+                    responseCode == InstallReferrerClient.InstallReferrerResponse.OK
+                ) {
+                    runCatching { client.installReferrer }.getOrNull()
+                } else {
+                    null
                 }
-                val details = runCatching { client.installReferrer }.getOrNull()
-                runCatching { client.endConnection() }
-                if (details == null) {
-                    installWorkInFlight.set(false)
-                    return
-                }
-                preferences.edit()
-                    .putBoolean(KEY_REFERRER_READY, true)
-                    .putString(KEY_REFERRER, details.installReferrer.orEmpty())
-                    .putString(KEY_INSTALL_VERSION, details.installVersion.orEmpty())
-                    .putLong(KEY_CLICK_CLIENT, details.referrerClickTimestampSeconds)
-                    .putLong(KEY_INSTALL_CLIENT, details.installBeginTimestampSeconds)
-                    .putLong(KEY_CLICK_SERVER, details.referrerClickTimestampServerSeconds)
-                    .putLong(KEY_INSTALL_SERVER, details.installBeginTimestampServerSeconds)
-                    .commit()
-                uploadInstall()
+                finishReferrerAttempt(client, attemptFinished, details)
             }
 
             override fun onInstallReferrerServiceDisconnected() {
-                installWorkInFlight.set(false)
+                finishReferrerAttempt(client, attemptFinished, null)
             }
         }
         runCatching { client.startConnection(listener) }
             .onFailure {
-                runCatching { client.endConnection() }
-                installWorkInFlight.set(false)
+                finishReferrerAttempt(client, attemptFinished, null)
             }
     }
 
+    private fun finishReferrerAttempt(
+        client: InstallReferrerClient? = null,
+        attemptFinished: AtomicBoolean? = null,
+        details: ReferrerDetails? = null
+    ) {
+        if (attemptFinished != null && !attemptFinished.compareAndSet(false, true)) return
+        runCatching { client?.endConnection() }
+
+        if (details != null) {
+            preferences.edit()
+                .putBoolean(KEY_REFERRER_READY, true)
+                .putString(KEY_REFERRER, details.installReferrer.orEmpty())
+                .putString(KEY_INSTALL_VERSION, details.installVersion.orEmpty())
+                .putLong(KEY_CLICK_CLIENT, details.referrerClickTimestampSeconds)
+                .putLong(KEY_INSTALL_CLIENT, details.installBeginTimestampSeconds)
+                .putLong(KEY_CLICK_SERVER, details.referrerClickTimestampServerSeconds)
+                .putLong(KEY_INSTALL_SERVER, details.installBeginTimestampServerSeconds)
+                .commit()
+            referrerFailedAttempts = 0
+            referrerRetryJob?.cancel()
+            referrerRetryJob = null
+            uploadInstall()
+            return
+        }
+
+        installWorkInFlight.set(false)
+        referrerFailedAttempts += 1
+        val retryDelay = if (referrerFailedAttempts < RAPID_REFERRER_RETRY_LIMIT) {
+            RAPID_REFERRER_RETRY_MILLIS
+        } else {
+            BACKGROUND_REFERRER_RETRY_MILLIS
+        }
+        referrerRetryJob?.cancel()
+        referrerRetryJob = referrerScope.launch {
+            delay(retryDelay)
+            reportInstallIfNeeded()
+        }
+    }
+
     private fun uploadInstall() {
+        val endpoint = AppRuntimeConfig.tbaEndpoint
+        if (endpoint.isBlank()) {
+            installWorkInFlight.set(false)
+            return
+        }
         val packageInfo = runCatching {
             application.packageManager.getPackageInfo(application.packageName, 0)
         }.getOrNull()
@@ -189,7 +239,7 @@ object SmartPdfSignalHub {
             .put("suction", (packageInfo?.firstInstallTime ?: 0L) / 1_000L)
             .put("khartoum", (packageInfo?.lastUpdateTime ?: 0L) / 1_000L)
         scope.launch {
-            if (OkHttpManager.postJson(endpoint()) { payload.bodyForAttempt() } != null) {
+            if (OkHttpManager.postJson(endpoint) { payload.bodyForAttempt() } != null) {
                 preferences.edit().putBoolean(KEY_INSTALL_REPORTED, true).apply()
             }
             installWorkInFlight.set(false)
@@ -197,7 +247,9 @@ object SmartPdfSignalHub {
     }
 
     private fun upload(payload: JSONObject) {
-        scope.launch { OkHttpManager.postJson(endpoint()) { payload.bodyForAttempt() } }
+        val endpoint = AppRuntimeConfig.tbaEndpoint
+        if (endpoint.isBlank()) return
+        scope.launch { OkHttpManager.postJson(endpoint) { payload.bodyForAttempt() } }
     }
 
     private fun JSONObject.bodyForAttempt(): String =
@@ -219,6 +271,4 @@ object SmartPdfSignalHub {
             }
         }
     }
-
-    private fun endpoint(): String = if (BuildConfig.DEBUG) TEST_ENDPOINT else RELEASE_ENDPOINT
 }

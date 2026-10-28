@@ -2,10 +2,8 @@ package com.zunelo.pdfreader.telemetry
 
 import android.app.Application
 import android.content.Context
-import com.facebook.FacebookSdk
 import com.facebook.appevents.AppEventsLogger
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.zunelo.pdfreader.R
 import java.math.BigDecimal
 import java.util.Currency
 import java.util.Locale
@@ -37,7 +35,7 @@ object AdValueDispatcher {
 
     fun initialize(application: Application) {
         this.application = application
-        initializeFacebook(application)
+        facebookLogger = runCatching { AppEventsLogger.newLogger(application) }.getOrNull()
         AppsFlyerTracker.initialize(application)
     }
 
@@ -71,19 +69,6 @@ object AdValueDispatcher {
         runCatching { reportFacebookValue(payload) }
         runCatching { AppsFlyerTracker.send(payload) }
         runCatching { reportAccumulatedValue(payload) }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun initializeFacebook(application: Application) {
-        val appId = application.getString(R.string.facebook_app_id).trim()
-        val clientToken = application.getString(R.string.facebook_client_token).trim()
-        if (appId.isEmpty() || clientToken.isEmpty()) return
-        runCatching {
-            FacebookSdk.setApplicationId(appId)
-            FacebookSdk.setClientToken(clientToken)
-            FacebookSdk.sdkInitialize(application)
-            facebookLogger = AppEventsLogger.newLogger(application, appId)
-        }
     }
 
     private fun reportTbaAd(payload: Payload) {

@@ -6,7 +6,7 @@ import com.appsflyer.AdRevenueScheme
 import com.appsflyer.AppsFlyerLib
 import com.appsflyer.MediationNetwork
 import com.zunelo.pdfreader.BuildConfig
-import com.zunelo.pdfreader.R
+import com.zunelo.pdfreader.config.AppRuntimeConfig
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal object AppsFlyerTracker {
@@ -14,7 +14,7 @@ internal object AppsFlyerTracker {
     private val ready = AtomicBoolean(false)
 
     fun initialize(application: Application) {
-        val devKey = application.getString(R.string.appsflyer_dev_key).trim()
+        val devKey = AppRuntimeConfig.appsFlyerDevKey
         if (devKey.isEmpty() || !ready.compareAndSet(false, true)) return
 
         runCatching {
@@ -23,6 +23,7 @@ internal object AppsFlyerTracker {
                 init(devKey, null, application)
                 setCustomerUserId(SmartPdfSignalHub.stableId)
                 start(application)
+                logSession(application)
             }
         }.onFailure {
             ready.set(false)

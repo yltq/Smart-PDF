@@ -4,18 +4,20 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.PopupMenu
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.zunelo.pdfreader.R
+import com.zunelo.pdfreader.ads.AdScenes
 import com.zunelo.pdfreader.application.MainActivity
 import com.zunelo.pdfreader.data.DocumentStore
 import com.zunelo.pdfreader.dialog.ProcessingDialogFragment
@@ -24,14 +26,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private enum class SizeFilter(val minimumBytes: Long, @param:StringRes val label: Int) {
+enum class SizeFilter(val minimumBytes: Long, @param:StringRes val label: Int) {
     TEN_MB(10L * 1024L * 1024L, R.string.large_file_size_10),
     FIFTY_MB(50L * 1024L * 1024L, R.string.large_file_size_50),
     HUNDRED_MB(100L * 1024L * 1024L, R.string.large_file_size_100),
     FIVE_HUNDRED_MB(500L * 1024L * 1024L, R.string.large_file_size_500)
 }
 
-private enum class TypeFilter(@param:StringRes val label: Int, val category: LargeFileCategory?) {
+enum class TypeFilter(@param:StringRes val label: Int, val category: LargeFileCategory?) {
     ALL(R.string.large_file_type_all, null),
     DOCUMENTS(R.string.large_file_type_documents, LargeFileCategory.DOCUMENT),
     IMAGES(R.string.large_file_type_images, LargeFileCategory.IMAGE),
@@ -41,7 +43,7 @@ private enum class TypeFilter(@param:StringRes val label: Int, val category: Lar
     OTHER(R.string.large_file_type_other, LargeFileCategory.OTHER)
 }
 
-private enum class DateFilter(@param:StringRes val label: Int, val ageMillis: Long) {
+enum class DateFilter(@param:StringRes val label: Int, val ageMillis: Long) {
     ANY(R.string.large_file_date_any, 0L),
     MONTH(R.string.large_file_date_month, 30L * 24L * 60L * 60L * 1_000L),
     SIX_MONTHS(R.string.large_file_date_six_months, 183L * 24L * 60L * 60L * 1_000L),
@@ -58,6 +60,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
     private var typeFilter = TypeFilter.ALL
     private var dateFilter = DateFilter.ANY
     private var scanning = false
+    private var contentAnimated = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,18 +80,48 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         view.findViewById<RecyclerView>(R.id.largeFileList).apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@LargeFilesFragment.adapter
-            itemAnimator = null
+            itemAnimator = DefaultItemAnimator().apply {
+                addDuration = 180L
+                removeDuration = 190L
+                moveDuration = 180L
+                changeDuration = 0L
+                supportsChangeAnimations = false
+            }
         }
-        view.findViewById<View>(R.id.sizeFilter).setOnClickListener { showSizeMenu(it) }
-        view.findViewById<View>(R.id.typeFilter).setOnClickListener { showTypeMenu(it) }
-        view.findViewById<View>(R.id.dateFilter).setOnClickListener { showDateMenu(it) }
+        view.findViewById<View>(R.id.sizeFilter).setOnClickListener { showFilter(LargeFileFilterKind.SIZE) }
+        view.findViewById<View>(R.id.typeFilter).setOnClickListener { showFilter(LargeFileFilterKind.TYPE) }
+        view.findViewById<View>(R.id.dateFilter).setOnClickListener { showFilter(LargeFileFilterKind.DATE) }
         view.findViewById<View>(R.id.selectAllAction).setOnClickListener { toggleSelectAll() }
         view.findViewById<View>(R.id.largeFileStateAction).setOnClickListener {
             if (DocumentStore.canModifyStorage(requireContext())) scanFiles() else accessFlow.request()
         }
         view.findViewById<View>(R.id.cleanLargeFiles).setOnClickListener { confirmDelete() }
         parentFragmentManager.setFragmentResultListener(DELETE_REQUEST, viewLifecycleOwner) { _, _ -> deleteSelected() }
+        parentFragmentManager.setFragmentResultListener(LargeFileFilterDialog.RESULT_REQUEST, viewLifecycleOwner) { _, result ->
+            val kind = result.getString(LargeFileFilterDialog.RESULT_KIND)
+                ?.let { runCatching { LargeFileFilterKind.valueOf(it) }.getOrNull() }
+                ?: return@setFragmentResultListener
+            val index = result.getInt(LargeFileFilterDialog.RESULT_INDEX, -1)
+            val changed = when (kind) {
+                LargeFileFilterKind.SIZE -> {
+                    val next = SizeFilter.entries.getOrNull(index) ?: return@setFragmentResultListener
+                    (next != sizeFilter).also { sizeFilter = next }
+                }
+                LargeFileFilterKind.TYPE -> {
+                    val next = TypeFilter.entries.getOrNull(index) ?: return@setFragmentResultListener
+                    (next != typeFilter).also { typeFilter = next }
+                }
+                LargeFileFilterKind.DATE -> {
+                    val next = DateFilter.entries.getOrNull(index) ?: return@setFragmentResultListener
+                    (next != dateFilter).also { dateFilter = next }
+                }
+            }
+            if (!changed) return@setFragmentResultListener
+            updateFilterLabels(animated = true)
+            applyFilters(clearSelection = true, animated = true)
+        }
         updateFilterLabels()
+        animateFilterEntry(view)
         if (DocumentStore.canModifyStorage(requireContext())) scanFiles() else renderAccessState()
     }
 
@@ -105,7 +138,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         }
     }
 
-    private fun applyFilters(clearSelection: Boolean) {
+    private fun applyFilters(clearSelection: Boolean, animated: Boolean = false) {
         if (clearSelection) selectedPaths.clear()
         val oldestAllowed = if (dateFilter.ageMillis == 0L) Long.MAX_VALUE else System.currentTimeMillis() - dateFilter.ageMillis
         visibleFiles = allFiles.asSequence()
@@ -114,9 +147,28 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
             .filter { dateFilter.ageMillis == 0L || (it.modified in 1..oldestAllowed) }
             .sortedWith(compareByDescending<LargeFileItem> { it.size }.thenBy { it.path })
             .toList()
-        adapter.submitList(visibleFiles)
-        adapter.selectedPaths = selectedPaths.toSet()
-        renderContent()
+        val commit = {
+            adapter.submitList(visibleFiles) {
+                if (animated) view?.findViewById<RecyclerView>(R.id.largeFileList)?.scrollToPosition(0)
+            }
+            adapter.selectedPaths = selectedPaths.toSet()
+            renderContent()
+        }
+        val content = view?.findViewById<View>(R.id.largeFileContent)
+        if (animated && content != null) {
+            content.animate().cancel()
+            content.animate().alpha(.38f).translationY(4f * resources.displayMetrics.density).setDuration(80L)
+                .withEndAction {
+                    commit()
+                    content.animate().alpha(1f).translationY(0f).setDuration(180L).start()
+                    view?.findViewById<View>(R.id.largeFileSummary)?.run {
+                        alpha = .35f
+                        animate().alpha(1f).setDuration(180L).start()
+                    }
+                }.start()
+        } else {
+            commit()
+        }
     }
 
     private fun toggleSelection(item: LargeFileItem) {
@@ -146,6 +198,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         root.findViewById<View>(R.id.largeFileBottomBar).visibility = if (empty) View.GONE else View.VISIBLE
         root.findViewById<TextView>(R.id.largeFileStateTitle).setText(R.string.large_files_empty_title)
         root.findViewById<TextView>(R.id.largeFileStateMessage).setText(R.string.large_files_empty_message)
+        root.findViewById<ImageView>(R.id.largeFileStateImage).setImageResource(R.drawable.state_no_files)
         root.findViewById<TextView>(R.id.largeFileStateAction).apply {
             setText(R.string.large_files_scan_again)
             visibility = if (empty) View.VISIBLE else View.GONE
@@ -158,6 +211,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
             visibleFiles.size
         )
         updateSelectionUi()
+        animateContentOnce(root, empty)
     }
 
     private fun renderAccessState() {
@@ -170,6 +224,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         root.findViewById<View>(R.id.largeFileEmptyState).visibility = View.VISIBLE
         root.findViewById<TextView>(R.id.largeFileStateTitle).setText(R.string.storage_access_title)
         root.findViewById<TextView>(R.id.largeFileStateMessage).setText(R.string.large_files_permission_message)
+        root.findViewById<ImageView>(R.id.largeFileStateImage).setImageResource(R.drawable.state_no_permission)
         root.findViewById<TextView>(R.id.largeFileStateAction).apply {
             setText(R.string.storage_access_action)
             visibility = View.VISIBLE
@@ -177,6 +232,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         intArrayOf(R.id.sizeFilter, R.id.typeFilter, R.id.dateFilter).forEach { id ->
             root.findViewById<View>(id).isEnabled = false
         }
+        root.findViewById<View>(R.id.filterGroup).alpha = .58f
         selectedPaths.clear()
         updateSelectionUi()
     }
@@ -189,20 +245,19 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
             if (visibleFiles.isNotEmpty() && selectedPaths.size == visibleFiles.size) R.string.large_files_deselect_all
             else R.string.large_files_select_all
         )
-        root.findViewById<TextView>(R.id.selectedLargeFileSummary).text = if (selectedItems.isEmpty()) {
-            getString(R.string.large_files_nothing_selected)
-        } else {
-            resources.getQuantityString(
-                R.plurals.large_files_selected,
-                selectedItems.size,
-                selectedItems.size,
-                DocumentStore.formatSize(selectedSize)
-            )
-        }
         root.findViewById<TextView>(R.id.cleanLargeFiles).apply {
-            isEnabled = selectedItems.isNotEmpty()
-            text = if (selectedItems.isEmpty()) getString(R.string.large_files_clean)
+            val enabledNow = selectedItems.isNotEmpty()
+            val changed = isEnabled != enabledNow
+            isEnabled = enabledNow
+            text = if (!enabledNow) getString(R.string.large_files_clean)
             else getString(R.string.large_files_clean_size, DocumentStore.formatSize(selectedSize))
+            if (changed || enabledNow) {
+                animate().cancel()
+                alpha = .72f
+                scaleX = if (enabledNow) .985f else 1f
+                scaleY = if (enabledNow) .985f else 1f
+                animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(170L).start()
+            }
         }
     }
 
@@ -212,6 +267,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         intArrayOf(R.id.sizeFilter, R.id.typeFilter, R.id.dateFilter).forEach { id ->
             root.findViewById<View>(id).isEnabled = !show
         }
+        root.findViewById<View>(R.id.filterGroup).animate().alpha(if (show) .58f else 1f).setDuration(160L).start()
         if (show) {
             root.findViewById<View>(R.id.largeFileList).visibility = View.GONE
             root.findViewById<View>(R.id.largeFileEmptyState).visibility = View.GONE
@@ -230,6 +286,8 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
     private fun deleteSelected() {
         val selected = allFiles.filter { selectedPaths.contains(it.path) }
         if (selected.isEmpty()) return
+        val host = requireActivity() as MainActivity
+        val adStartedAt = host.beginCreationAd(AdScenes.CLEAN_FILES)
         val dialogTag = "large_file_cleaning"
         ProcessingDialogFragment.newInstance(getString(R.string.large_files_cleaning))
             .show(parentFragmentManager, dialogTag)
@@ -238,77 +296,102 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
                 LargeFileRepository.delete(requireContext().applicationContext, selected)
             }
             (parentFragmentManager.findFragmentByTag(dialogTag) as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
-            allFiles = allFiles.filterNot { result.deletedPaths.contains(it.path) }
-            selectedPaths.clear()
-            applyFilters(clearSelection = false)
-            if (result.deletedPaths.isNotEmpty()) {
-                (requireActivity() as MainActivity).refreshHomeDocuments()
+            if (!isAdded) return@launch
+
+            if (result.deletedPaths.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.large_files_delete_failed, Toast.LENGTH_LONG).show()
+                return@launch
             }
-            val message = when {
-                result.deletedPaths.isEmpty() -> getString(R.string.large_files_delete_failed)
-                result.failedCount > 0 -> resources.getQuantityString(
-                    R.plurals.large_files_clean_partial,
-                    result.failedCount,
-                    DocumentStore.formatSize(result.freedBytes),
-                    result.failedCount
-                )
-                else -> getString(R.string.large_files_clean_success, DocumentStore.formatSize(result.freedBytes))
+
+            val openResult = {
+                if (isAdded && view != null) {
+                    allFiles = allFiles.filterNot { result.deletedPaths.contains(it.path) }
+                    selectedPaths.clear()
+                    applyFilters(clearSelection = false)
+                    host.refreshHomeDocuments()
+                    host.navigate(
+                        LargeFileResultFragment.newInstance(
+                            freedBytes = result.freedBytes,
+                            deletedCount = result.deletedPaths.size,
+                            failedCount = result.failedCount
+                        )
+                    )
+                }
             }
-            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+            host.continueAfterCreationAd(
+                scene = AdScenes.CLEAN_FILES,
+                startedAtMillis = adStartedAt,
+                loadingMessage = getString(R.string.large_files_cleaning),
+                onComplete = openResult
+            )
         }
     }
 
-    private fun updateFilterLabels() {
-        view?.findViewById<TextView>(R.id.sizeFilter)?.setText(sizeFilter.label)
-        view?.findViewById<TextView>(R.id.typeFilter)?.setText(typeFilter.label)
-        view?.findViewById<TextView>(R.id.dateFilter)?.setText(dateFilter.label)
+    private fun updateFilterLabels(animated: Boolean = false) {
+        updateFilterLabel(R.id.sizeFilter, sizeFilter.label, R.drawable.ic_filter_size, animated)
+        updateFilterLabel(R.id.typeFilter, typeFilter.label, LargeFileVisuals.icon(typeFilter.category), animated)
+        updateFilterLabel(R.id.dateFilter, dateFilter.label, R.drawable.ic_filter_date, animated)
     }
 
-    private fun showSizeMenu(anchor: View) = showMenu(anchor, SizeFilter.entries, sizeFilter) {
-        sizeFilter = it
-        updateFilterLabels()
-        applyFilters(clearSelection = true)
-    }
-
-    private fun showTypeMenu(anchor: View) = showMenu(anchor, TypeFilter.entries, typeFilter) {
-        typeFilter = it
-        updateFilterLabels()
-        applyFilters(clearSelection = true)
-    }
-
-    private fun showDateMenu(anchor: View) = showMenu(anchor, DateFilter.entries, dateFilter) {
-        dateFilter = it
-        updateFilterLabels()
-        applyFilters(clearSelection = true)
-    }
-
-    private fun <T> showMenu(anchor: View, values: List<T>, selected: T, onSelected: (T) -> Unit) where T : Enum<T> {
-        val popup = PopupMenu(requireContext(), anchor)
-        values.forEachIndexed { index, value ->
-            val label = when (value) {
-                is SizeFilter -> value.label
-                is TypeFilter -> value.label
-                is DateFilter -> value.label
-                else -> error("Unsupported filter")
-            }
-            popup.menu.add(0, index, index, label).isChecked = value == selected
+    private fun updateFilterLabel(viewId: Int, label: Int, icon: Int, animated: Boolean) {
+        val filter = view?.findViewById<TextView>(viewId) ?: return
+        val update = {
+            filter.setText(label)
+            filter.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, R.drawable.ic_chevron_down, 0)
         }
-        popup.menu.setGroupCheckable(0, true, true)
-        popup.setOnMenuItemClickListener { item ->
-            values.getOrNull(item.itemId)?.let(onSelected)
-            true
+        if (!animated) {
+            update()
+            return
         }
-        popup.show()
+        filter.animate().cancel()
+        filter.animate().alpha(.25f).setDuration(70L).withEndAction {
+            update()
+            filter.animate().alpha(1f).setDuration(140L).start()
+        }.start()
+    }
+
+    private fun showFilter(kind: LargeFileFilterKind) {
+        if (parentFragmentManager.findFragmentByTag(FILTER_TAG) != null) return
+        val selectedIndex = when (kind) {
+            LargeFileFilterKind.SIZE -> sizeFilter.ordinal
+            LargeFileFilterKind.TYPE -> typeFilter.ordinal
+            LargeFileFilterKind.DATE -> dateFilter.ordinal
+        }
+        LargeFileFilterDialog.newInstance(kind, selectedIndex).show(parentFragmentManager, FILTER_TAG)
+    }
+
+    private fun animateFilterEntry(root: View) {
+        root.findViewById<View>(R.id.filterGroup).apply {
+            alpha = 0f
+            translationY = -6f * resources.displayMetrics.density
+            animate().alpha(1f).translationY(0f).setDuration(220L).setStartDelay(40L).start()
+        }
+    }
+
+    private fun animateContentOnce(root: View, empty: Boolean) {
+        if (contentAnimated) return
+        contentAnimated = true
+        val targets = buildList {
+            if (!empty) add(root.findViewById<View>(R.id.largeFileSummary))
+            add(root.findViewById<View>(R.id.largeFileContent))
+            if (!empty) add(root.findViewById<View>(R.id.largeFileBottomBar))
+        }
+        targets.forEachIndexed { index, target ->
+            target.alpha = 0f
+            target.translationY = 8f * resources.displayMetrics.density
+            target.animate().alpha(1f).translationY(0f).setStartDelay(index * 45L).setDuration(220L).start()
+        }
     }
 
     companion object {
         const val DELETE_REQUEST = "large_file_delete_confirmed"
+        private const val FILTER_TAG = "large_file_filter"
     }
 }
 
 class LargeFileDeleteDialog : BottomSheetDialogFragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View =
-        inflater.inflate(R.layout.dialog_large_file_delete, container, false)
+        inflater.inflate(R.layout.dialog_confirm_delete, container, false)
 
     override fun onStart() {
         super.onStart()
@@ -321,15 +404,16 @@ class LargeFileDeleteDialog : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val count = requireArguments().getInt(ARG_COUNT)
         val size = requireArguments().getLong(ARG_SIZE)
-        view.findViewById<TextView>(R.id.largeDeleteMessage).text =
+        view.findViewById<TextView>(R.id.deleteTitle).setText(R.string.large_files_delete_title)
+        view.findViewById<TextView>(R.id.deleteMessage).text =
             resources.getQuantityString(
                 R.plurals.large_files_delete_message,
                 count,
                 count,
                 DocumentStore.formatSize(size)
             )
-        view.findViewById<View>(R.id.cancelLargeDelete).setOnClickListener { dismiss() }
-        view.findViewById<View>(R.id.confirmLargeDelete).setOnClickListener {
+        view.findViewById<View>(R.id.cancelDelete).setOnClickListener { dismiss() }
+        view.findViewById<View>(R.id.confirmDelete).setOnClickListener {
             parentFragmentManager.setFragmentResult(LargeFilesFragment.DELETE_REQUEST, Bundle())
             dismiss()
         }

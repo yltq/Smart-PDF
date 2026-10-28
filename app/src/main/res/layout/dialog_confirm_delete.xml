@@ -25,6 +25,7 @@
         android:src="@drawable/ic_delete" />
 
     <TextView
+        android:id="@+id/deleteTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
@@ -35,6 +36,7 @@
         android:textStyle="bold" />
 
     <TextView
+        android:id="@+id/deleteMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
