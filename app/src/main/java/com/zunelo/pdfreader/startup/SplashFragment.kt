@@ -21,8 +21,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.addCallback
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
 import com.zunelo.pdfreader.uninstall.UninstallStepOneFragment
 import com.zunelo.pdfreader.ads.AdScenes
 import com.zunelo.pdfreader.ads.SmartPdfAds
@@ -75,6 +73,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
     private var launchAdShowing = false
     private var skipNextResumeAd = false
     private val launchAdPollAction = Runnable { requestLaunchAd() }
+    private val launchAdTimeoutAction = Runnable { completeStartupAdWait() }
     private val startupReadyAction = Runnable {
         startupReady = true
         attemptExit()
@@ -103,11 +102,8 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
         StartupConsentCoordinator.prepare(requireActivity(), firstColdStart) {
             if (!isAdded || view == null) return@prepare
             beginStartupAdTiming()
-            viewLifecycleOwner.lifecycleScope.launch {
-                (requireActivity().application as SmartPdfApplication).awaitMobileAdsInitialization()
-                startupAdGateReady = true
-                dispatchStartupAdIfReady()
-            }
+            startupAdGateReady = true
+            dispatchStartupAdIfReady()
         }
     }
 
@@ -126,6 +122,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
         if (!startupReady) {
             view?.postDelayed(startupReadyAction, launchMinWaitMillis - elapsed)
         }
+        scheduleLaunchAdTimeout(elapsed)
         SmartPdfAds.markDisplayChance(AdScenes.LAUNCH, launchSource())
         SmartPdfAds.preloadAll(launchSource())
         requestLaunchAd()
@@ -139,13 +136,18 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
 
     private fun requestLaunchAd() {
         if (!isAdded || !isResumed || startupAdvertisingComplete) return
-        SmartPdfAds.load(AdScenes.LAUNCH, launchSource())
         val now = SystemClock.elapsedRealtime()
         val adWaitElapsed = now - launchAdStartedAt
+        if (adWaitElapsed >= MAXIMUM_AD_WAIT_DURATION) {
+            completeStartupAdWait()
+            return
+        }
+        SmartPdfAds.load(AdScenes.LAUNCH, launchSource())
         when {
             adWaitElapsed >= launchMinWaitMillis && SmartPdfAds.isReady(AdScenes.LAUNCH) -> {
                 startupReady = true
                 view?.removeCallbacks(startupReadyAction)
+                view?.removeCallbacks(launchAdTimeoutAction)
                 launchAdShowing = true
                 SmartPdfAds.show(
                     requireActivity(),
@@ -159,14 +161,26 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
                     attemptExit()
                 }
             }
-            adWaitElapsed >= MAXIMUM_AD_WAIT_DURATION -> {
-                startupReady = true
-                view?.removeCallbacks(startupReadyAction)
-                startupAdvertisingComplete = true
-                attemptExit()
-            }
             else -> view?.postDelayed(launchAdPollAction, AD_POLL_INTERVAL)
         }
+    }
+
+    private fun scheduleLaunchAdTimeout(elapsed: Long) {
+        view?.removeCallbacks(launchAdTimeoutAction)
+        view?.postDelayed(
+            launchAdTimeoutAction,
+            (MAXIMUM_AD_WAIT_DURATION - elapsed).coerceAtLeast(0L)
+        )
+    }
+
+    private fun completeStartupAdWait() {
+        if (!isAdded || !isResumed || startupAdvertisingComplete || launchAdShowing) return
+        view?.removeCallbacks(launchAdPollAction)
+        view?.removeCallbacks(startupReadyAction)
+        view?.removeCallbacks(launchAdTimeoutAction)
+        startupReady = true
+        startupAdvertisingComplete = true
+        attemptExit()
     }
 
     private fun attemptExit() {
@@ -191,8 +205,18 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
             destination == DESTINATION_SCAN -> HomeFragment.newInstance(startScan = true)
             else -> HomeFragment()
         }
-        (requireActivity() as MainActivity).showRoot(target)
+        (requireActivity() as MainActivity).apply {
+            showRoot(target)
+            supportFragmentManager.executePendingTransactions()
+            consumePendingFullScreenResumeTask()
+        }
     }
+
+    fun freshInstance(): SplashFragment = newInstance(
+        showNewUserFlow = arguments?.getBoolean(ARG_NEW_USER_FLOW) == true,
+        destination = arguments?.getString(ARG_DESTINATION) ?: DESTINATION_HOME,
+        adSource = launchSource()
+    )
 
     override fun onResume() {
         super.onResume()
@@ -210,6 +234,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
 
     override fun onStop() {
         view?.removeCallbacks(launchAdPollAction)
+        view?.removeCallbacks(launchAdTimeoutAction)
         if (::scene.isInitialized && !exitStarted) scene.pauseAmbient()
         super.onStop()
     }
@@ -217,6 +242,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
     override fun onDestroyView() {
         view?.removeCallbacks(startupReadyAction)
         view?.removeCallbacks(launchAdPollAction)
+        view?.removeCallbacks(launchAdTimeoutAction)
         logo.animate().cancel()
         title.animate().cancel()
         scene.dispose()

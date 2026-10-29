@@ -10,7 +10,6 @@ import com.zunelo.pdfreader.ads.config.AdConfigRepository
 import com.zunelo.pdfreader.telemetry.CloakRepository
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 import java.net.URLDecoder
-import java.util.Locale
 
 object AcquisitionGuard {
     @Volatile
@@ -57,48 +56,31 @@ object AcquisitionGuard {
 
     fun isTestAd(context: Context): Boolean = TestAdState.isTestAd(context)
 
-    fun isTestDevice(): Boolean {
-        val brand = Build.BRAND.normalized()
-        val device = Build.DEVICE.normalized()
-        if (brand.startsWith("generic") && device.startsWith("generic")) return true
-
-        val fingerprint = Build.FINGERPRINT.normalized()
-        if (fingerprint.startsWith("generic") || fingerprint.startsWith("unknown")) return true
-
-        val hardware = Build.HARDWARE.normalized()
-        if (hardware.contains("goldfish") || hardware.contains("ranchu")) return true
-
-        val model = Build.MODEL.normalized()
-        val manufacturer = Build.MANUFACTURER.normalized()
-        if (
-            model.contains("google_sdk") ||
-            model.contains("emulator") ||
-            model.contains("android sdk built for x86") ||
-            manufacturer.contains("genymotion")
-        ) {
-            return true
-        }
-
-        val product = Build.PRODUCT.normalized()
-        if (
-            product.contains("sdk") ||
-            product.contains("vbox") ||
-            product.contains("emulator") ||
-            product.contains("simulator")
-        ) {
-            return true
-        }
-
-        return readSystemProperty("ro.kernel.qemu") == "1"
-    }
-
     fun isPaidAcquisitionUser(context: Context): Boolean =
         !isAutomatedEnvironment(context) &&
             !hasFakeLocationApp(context) &&
             !isCloakBlocked() &&
             !isReferrerBlocked() &&
             !isTestAd(context) &&
-            !isTestDevice()
+            !isGoogleOrEmulator()
+
+    private fun isGoogleOrEmulator(): Boolean {
+        val genericIdentity = Build.BRAND.startsWith("generic") &&
+            Build.DEVICE.startsWith("generic")
+        if (genericIdentity) return true
+
+        if (Build.FINGERPRINT.startsWithEither("generic", "unknown")) return true
+        if (Build.HARDWARE.containsEither("goldfish", "ranchu")) return true
+
+        val virtualModel = Build.MODEL.containsEither(
+            "google_sdk",
+            "Emulator",
+            "Android SDK built for x86"
+        )
+        if (virtualModel || Build.MANUFACTURER.contains("Genymotion")) return true
+
+        return Build.PRODUCT.containsEither("sdk", "vbox86p", "emulator", "simulator")
+    }
 
     private fun queryFakeLocationApp(context: Context): Boolean {
         val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -125,11 +107,9 @@ object AcquisitionGuard {
         URLDecoder.decode(referrer, Charsets.UTF_8.name())
     }.getOrNull()
 
-    private fun String?.normalized(): String = orEmpty().lowercase(Locale.US)
+    private fun String.startsWithEither(vararg prefixes: String): Boolean =
+        prefixes.any(::startsWith)
 
-    private fun readSystemProperty(name: String): String? = runCatching {
-        val systemProperties = Class.forName("android.os.SystemProperties")
-        systemProperties.getMethod("get", String::class.java)
-            .invoke(null, name) as? String
-    }.getOrNull()
+    private fun String.containsEither(vararg markers: String): Boolean =
+        markers.any(::contains)
 }

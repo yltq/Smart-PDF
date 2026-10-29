@@ -3,6 +3,7 @@ package com.zunelo.pdfreader.application
 import com.zunelo.pdfreader.R
 import com.zunelo.pdfreader.application.*
 import com.zunelo.pdfreader.common.*
+import com.zunelo.pdfreader.cleanup.LargeFileResultFragment
 import com.zunelo.pdfreader.data.*
 import com.zunelo.pdfreader.dialog.*
 import com.zunelo.pdfreader.home.*
@@ -15,9 +16,10 @@ import com.zunelo.pdfreader.uninstall.*
 import com.zunelo.pdfreader.viewer.*
 import com.zunelo.pdfreader.ads.AdScene
 import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.FullScreenResumeStore
+import com.zunelo.pdfreader.ads.FullScreenResumeTask
 import com.zunelo.pdfreader.ads.SmartPdfAds
 import com.zunelo.pdfreader.ads.PageAdRefreshable
-import com.zunelo.pdfreader.ads.config.AdConfigRepository
 import com.zunelo.pdfreader.data.DocumentItem
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 
@@ -48,11 +50,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var launchNewUserFlow = false
-    private var restartAfterUninstallBackground = false
-    private var backgroundAtMillis = 0L
     private var hotStartRouting = false
-    private var suppressNextForegroundAdRefresh = false
-    private var fullScreenAdTransition = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (savedInstanceState == null) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -63,7 +61,6 @@ class MainActivity : AppCompatActivity() {
         if (uninstallWasBackgrounded) {
             launchNewUserFlow = false
             entryPreferences.edit().remove(KEY_UNINSTALL_BACKGROUND).apply()
-            restartAfterUninstallBackground = savedInstanceState != null
         }
         val preferences = getSharedPreferences("onboarding", 0)
         if (preferences.contains("language")) {
@@ -111,56 +108,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        val current = supportFragmentManager.findFragmentById(R.id.main)
-        if (current is SplashFragment) {
-            backgroundAtMillis = 0L
-            return
-        }
-
-        val returnedFromBackground = backgroundAtMillis > 0L
-        val forceRestart = restartAfterUninstallBackground
-        val backgroundDuration = if (returnedFromBackground) {
-            SystemClock.elapsedRealtime() - backgroundAtMillis
-        } else {
-            0L
-        }
-        backgroundAtMillis = 0L
-        restartAfterUninstallBackground = false
-        if (forceRestart) {
-            getSharedPreferences(PREFERENCES_ENTRY, 0).edit().remove(KEY_UNINSTALL_BACKGROUND).apply()
-        }
-        if (fullScreenAdTransition || suppressNextForegroundAdRefresh) {
-            fullScreenAdTransition = false
-            suppressNextForegroundAdRefresh = false
-            return
-        }
-        val hotStartGapMillis = AdConfigRepository.userConfig(this)
-            .adsSettings
-            .hotStartGapMillis
-            .coerceAtLeast(0L)
-        if (!forceRestart && (!returnedFromBackground || backgroundDuration < hotStartGapMillis)) {
-            if (returnedFromBackground) scheduleVisiblePageAdRefresh()
-            return
-        }
-
-        launchNewUserFlow = false
-        if (hotStartRouting) return
-        hotStartRouting = true
-        window.decorView.post {
-            if (!isFinishing && !isDestroyed) {
-                showRoot(SplashFragment.newInstance(false, SplashFragment.DESTINATION_HOME))
-            }
-            hotStartRouting = false
-        }
-    }
-
     override fun onResume() {
         super.onResume()
-        if (suppressNextForegroundAdRefresh && backgroundAtMillis == 0L) {
-            suppressNextForegroundAdRefresh = false
-        }
         updateNavigationBar(supportFragmentManager.findFragmentById(R.id.main))
     }
 
@@ -175,23 +124,12 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val current = supportFragmentManager.findFragmentById(R.id.main)
-        if (current is SplashFragment) {
-            backgroundAtMillis = 0L
-            super.onStop()
-            return
-        }
-
-        if (SmartPdfAds.isFullScreenShowing()) {
-            fullScreenAdTransition = true
-            backgroundAtMillis = 0L
-            super.onStop()
-            return
-        }
-
-        backgroundAtMillis = SystemClock.elapsedRealtime()
-        if (current is UninstallStepOneFragment || current is UninstallStepTwoFragment) {
+        if (
+            !SmartPdfAds.isFullScreenShowing() &&
+            (current is UninstallStepOneFragment || current is UninstallStepTwoFragment)
+        ) {
             launchNewUserFlow = false
-            restartAfterUninstallBackground = true
+            AppForegroundCoordinator.forceHotStartOnNextForeground()
             getSharedPreferences(PREFERENCES_ENTRY, 0).edit()
                 .putBoolean(KEY_UNINSTALL_BACKGROUND, true)
                 .apply()
@@ -239,7 +177,68 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun suppressNextPageAdRefresh() {
-        suppressNextForegroundAdRefresh = true
+        AppForegroundCoordinator.suppressNextForeground()
+    }
+
+    internal fun onShortForegroundReturn() {
+        scheduleVisiblePageAdRefresh()
+    }
+
+    internal fun restartFromForeground(mode: AppForegroundCoordinator.RestartMode) {
+        if (hotStartRouting) return
+        hotStartRouting = true
+        window.decorView.post {
+            if (!isFinishing && !isDestroyed) {
+                val current = supportFragmentManager.findFragmentById(R.id.main)
+                val splash = if (mode == AppForegroundCoordinator.RestartMode.RESTART_CURRENT_SPLASH) {
+                    (current as? SplashFragment)?.freshInstance()
+                        ?: SplashFragment.newInstance(false, SplashFragment.DESTINATION_HOME)
+                } else {
+                    launchNewUserFlow = false
+                    SplashFragment.newInstance(false, SplashFragment.DESTINATION_HOME)
+                }
+                showRoot(splash)
+            }
+            hotStartRouting = false
+        }
+    }
+
+    fun consumePendingFullScreenResumeTask() {
+        val task = FullScreenResumeStore.take(this) ?: return
+        val payload = task.payloadJson()
+        when (task.action) {
+            FullScreenResumeTask.Action.OPEN_DOCUMENT -> {
+                FullScreenResumeTask.document(payload)?.let { navigate(ViewerFragment.newInstance(it)) }
+            }
+            FullScreenResumeTask.Action.RETURN_HOME -> showRoot(HomeFragment.newInstance(0))
+            FullScreenResumeTask.Action.SHOW_RESULT -> {
+                val item = FullScreenResumeTask.document(payload) ?: return
+                navigate(ResultFragment.newInstance(item, payload.optString("result_action", "processed")))
+            }
+            FullScreenResumeTask.Action.SHOW_CLEAN_RESULT -> {
+                refreshHomeDocuments()
+                navigate(
+                    LargeFileResultFragment.newInstance(
+                        freedBytes = payload.optLong("freed_bytes"),
+                        deletedCount = payload.optInt("deleted_count"),
+                        failedCount = payload.optInt("failed_count")
+                    )
+                )
+            }
+            FullScreenResumeTask.Action.APPLY_NEW_USER_LANGUAGE -> {
+                val languageTag = payload.optString("language_tag")
+                getSharedPreferences("onboarding", 0).edit()
+                    .putString("language", languageTag)
+                    .putBoolean("language_done", true)
+                    .apply()
+                applyNewUserLanguage(languageTag)
+            }
+            FullScreenResumeTask.Action.COMPLETE_NEW_USER -> {
+                completeNewUserFlow()
+                showRoot(HomeFragment())
+            }
+            FullScreenResumeTask.Action.OPEN_UNINSTALL_STEP_TWO -> showRoot(UninstallStepTwoFragment())
+        }
     }
 
     private fun refreshVisiblePageAds() {
@@ -310,13 +309,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun openDocumentWithAd(item: DocumentItem) {
-        SmartPdfAds.show(this, AdScenes.FILE_ENTRY) {
+        SmartPdfAds.show(this, AdScenes.FILE_ENTRY, resumeTask = FullScreenResumeTask.openDocument(item)) {
             if (!isFinishing && !isDestroyed) navigate(ViewerFragment.newInstance(item))
         }
     }
 
     fun returnHomeWithAd() {
-        SmartPdfAds.show(this, AdScenes.BACK_HOME) {
+        SmartPdfAds.show(this, AdScenes.BACK_HOME, resumeTask = FullScreenResumeTask.returnHome()) {
             if (!isFinishing && !isDestroyed) showRoot(HomeFragment.newInstance(0))
         }
     }
@@ -331,7 +330,8 @@ class MainActivity : AppCompatActivity() {
         continueAfterCreationAd(
             scene = scene,
             startedAtMillis = startedAtMillis,
-            loadingMessage = getString(R.string.creating_pdf)
+            loadingMessage = getString(R.string.creating_pdf),
+            resumeTask = FullScreenResumeTask.showResult(item, action)
         ) {
             if (!isFinishing && !isDestroyed) navigate(ResultFragment.newInstance(item, action))
         }
@@ -341,6 +341,7 @@ class MainActivity : AppCompatActivity() {
         scene: AdScene,
         startedAtMillis: Long,
         loadingMessage: String,
+        resumeTask: FullScreenResumeTask? = null,
         onComplete: () -> Unit
     ) {
         val tag = "creation_ad_wait"
@@ -355,7 +356,13 @@ class MainActivity : AppCompatActivity() {
             handler.removeCallbacks(checkAd)
             (supportFragmentManager.findFragmentByTag(tag) as? ProcessingDialogFragment)?.dismissAllowingStateLoss()
             if (showAd) {
-                SmartPdfAds.show(this, scene, chanceAlreadyReported = true, onComplete = onComplete)
+                SmartPdfAds.show(
+                    this,
+                    scene,
+                    chanceAlreadyReported = true,
+                    resumeTask = resumeTask,
+                    onComplete = onComplete
+                )
             } else {
                 onComplete()
             }

@@ -9,7 +9,6 @@ import com.zunelo.pdfreader.telemetry.CloakRepository
 import com.zunelo.pdfreader.telemetry.AdValueDispatcher
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
@@ -18,7 +17,6 @@ import kotlinx.coroutines.launch
 
 class SmartPdfApplication : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val mobileAdsInitialization = CompletableDeferred<Unit>()
 
     override fun onCreate() {
         super.onCreate()
@@ -26,24 +24,19 @@ class SmartPdfApplication : Application() {
         AdValueDispatcher.initialize(this)
         CloakRepository.initialize(this)
         SmartPdfAds.initialize(this)
+        AppForegroundCoordinator.initialize(this)
+        runCatching {
+            MobileAds.initialize(this@SmartPdfApplication) {}
+        }
         applicationScope.launch {
             runCatching {
                 FirebaseApp.initializeApp(this@SmartPdfApplication)
                     ?.let(AdConfigRepository::initialize)
             }
-            runCatching {
-                MobileAds.initialize(this@SmartPdfApplication) {
-                    mobileAdsInitialization.complete(Unit)
-                }
-            }.onFailure { mobileAdsInitialization.complete(Unit) }
             while (isActive) {
                 SmartPdfSignalHub.recordCustomSignal("session_back")
                 delay(5 * 60 * 1_000L)
             }
         }
-    }
-
-    suspend fun awaitMobileAdsInitialization() {
-        mobileAdsInitialization.await()
     }
 }

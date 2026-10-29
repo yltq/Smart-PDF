@@ -45,13 +45,13 @@ data class UserAdsSettings(
     fun isSceneEnabled(adPosId: String): Boolean = when (adPosId) {
         "ad_open_launch" -> true
         "ad_create_int", "ad_merge_int", "ad_split_int" -> pdfMergeInterstitial
+        "ad_scan_int", "ad_clean_int" -> pdfCleanInterstitial
         "ad_file_int" -> fileOpenInterstitial
-        "ad_clean_int" -> pdfCleanInterstitial
         "ad_back_int" -> homeBackAd
         "new_langua_int", "new_intro_int" -> introFirstInterstitial
         "page_uninstall_int" -> removeAppInterstitial
         "ad_main_nat" -> homeNative
-        "ad_result_nat" -> finishNative
+        "ad_merge_nat", "ad_result_nat" -> finishNative
         "new_langua_nat", "new_intro_nat" -> introFirstNative
         "page_uninstall_nat1", "page_uninstall_nat2" -> removeAppNative
         "ad_main_ban" -> homeBanner

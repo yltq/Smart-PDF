@@ -1,6 +1,7 @@
 package com.zunelo.pdfreader.cleanup
 
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,6 +10,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -18,11 +20,14 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.zunelo.pdfreader.R
 import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.FullScreenResumeTask
+import com.zunelo.pdfreader.ads.SmartPdfAds
 import com.zunelo.pdfreader.application.MainActivity
 import com.zunelo.pdfreader.data.DocumentStore
 import com.zunelo.pdfreader.dialog.ProcessingDialogFragment
 import com.zunelo.pdfreader.permission.StorageAccessFlow
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -60,6 +65,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
     private var typeFilter = TypeFilter.ALL
     private var dateFilter = DateFilter.ANY
     private var scanning = false
+    private var scanCompletionPending = false
     private var contentAnimated = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,13 +135,37 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         if (scanning || !isAdded) return
         scanning = true
         showLoading(true)
+        val scanStartedAt = SystemClock.elapsedRealtime()
+        SmartPdfAds.load(AdScenes.LARGE_FILE_SCAN)
         viewLifecycleOwner.lifecycleScope.launch {
             val snapshot = withContext(Dispatchers.IO) { LargeFileRepository.scan(requireContext().applicationContext) }
+            val remainingAnimation = SCAN_ANIMATION_MILLIS - (SystemClock.elapsedRealtime() - scanStartedAt)
+            if (remainingAnimation > 0L) delay(remainingAnimation)
             if (!isAdded) return@launch
             allFiles = snapshot
             scanning = false
-            applyFilters(clearSelection = true)
+            scanCompletionPending = true
+            presentCompletedScanIfPossible()
         }
+    }
+
+    private fun presentCompletedScanIfPossible() {
+        if (
+            !scanCompletionPending ||
+            !isAdded ||
+            view == null ||
+            !viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        ) {
+            return
+        }
+        scanCompletionPending = false
+        SmartPdfAds.show(requireActivity(), AdScenes.LARGE_FILE_SCAN) {}
+        applyFilters(clearSelection = true)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        presentCompletedScanIfPossible()
     }
 
     private fun applyFilters(clearSelection: Boolean, animated: Boolean = false) {
@@ -322,6 +352,11 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
                 scene = AdScenes.CLEAN_FILES,
                 startedAtMillis = adStartedAt,
                 loadingMessage = getString(R.string.large_files_cleaning),
+                resumeTask = FullScreenResumeTask.showCleanResult(
+                    freedBytes = result.freedBytes,
+                    deletedCount = result.deletedPaths.size,
+                    failedCount = result.failedCount
+                ),
                 onComplete = openResult
             )
         }
@@ -386,6 +421,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
     companion object {
         const val DELETE_REQUEST = "large_file_delete_confirmed"
         private const val FILTER_TAG = "large_file_filter"
+        private const val SCAN_ANIMATION_MILLIS = 2_000L
     }
 }
 

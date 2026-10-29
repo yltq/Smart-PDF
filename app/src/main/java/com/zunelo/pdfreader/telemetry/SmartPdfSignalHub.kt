@@ -227,6 +227,7 @@ object SmartPdfSignalHub {
             application.packageManager.getPackageInfo(application.packageName, 0)
         }.getOrNull()
         val payload = commonPayload()
+            .put("cliche", "flour")
             .put("aleutian", "build/${Build.ID.orEmpty()}")
             .put("barnacle", preferences.getString(KEY_REFERRER, "").orEmpty())
             .put("landmass", preferences.getString(KEY_INSTALL_VERSION, "").orEmpty())

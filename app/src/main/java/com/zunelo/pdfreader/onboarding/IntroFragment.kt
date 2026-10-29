@@ -15,6 +15,7 @@ import com.zunelo.pdfreader.home.HomeFragment
 import kotlin.math.abs
 import android.view.ViewGroup
 import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.FullScreenResumeTask
 import com.zunelo.pdfreader.ads.SmartPdfAds
 import com.zunelo.pdfreader.ads.PageAdRefreshable
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
@@ -91,7 +92,11 @@ class IntroFragment : Fragment(R.layout.fragment_intro), PageAdRefreshable {
         if (leaving) return
         leaving = true
         SmartPdfSignalHub.recordCustomSignal("page_introduce_click")
-        SmartPdfAds.show(requireActivity(), AdScenes.NEW_INTRO_INTERSTITIAL) {
+        SmartPdfAds.show(
+            requireActivity(),
+            AdScenes.NEW_INTRO_INTERSTITIAL,
+            resumeTask = FullScreenResumeTask.completeNewUser()
+        ) {
             (requireActivity() as MainActivity).apply {
                 completeNewUserFlow()
                 showRoot(HomeFragment())

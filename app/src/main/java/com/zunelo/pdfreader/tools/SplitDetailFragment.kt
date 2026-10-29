@@ -18,13 +18,17 @@ import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.ads.SmartPdfAds
 
-class SplitDetailFragment : Fragment(R.layout.fragment_split_detail) {
+class SplitDetailFragment : Fragment(R.layout.fragment_split_detail), PageAdRefreshable {
     companion object { fun newInstance(item: DocumentItem) = SplitDetailFragment().apply { arguments = Bundle().putDocument(item) } }
     private lateinit var item: DocumentItem
     private lateinit var adapter: PageSelectionAdapter
@@ -49,7 +53,13 @@ class SplitDetailFragment : Fragment(R.layout.fragment_split_detail) {
             result.getString(OutputNameDialogFragment.RESULT_NAME)?.let(::split)
         }
         view.findViewById<RecyclerView>(R.id.pageList).apply { layoutManager = GridLayoutManager(requireContext(), 3); adapter = this@SplitDetailFragment.adapter }
+        bindListNative()
         renderPages()
+    }
+
+    private fun bindListNative() {
+        val container = view?.findViewById<ViewGroup>(R.id.splitNativeAd) ?: return
+        SmartPdfAds.bindNative(requireActivity(), AdScenes.MERGE_LIST_NATIVE, container)
     }
 
     private fun renderPages() {
@@ -94,5 +104,18 @@ class SplitDetailFragment : Fragment(R.layout.fragment_split_detail) {
         }.also { it.start() }
     }
 
-    override fun onDestroyView() { splitTask?.cancel(); splitTask = null; super.onDestroyView() }
+    override fun refreshPageAds() = bindListNative()
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        val container = view?.findViewById<ViewGroup>(R.id.splitNativeAd) ?: return
+        if (hidden) SmartPdfAds.release(container) else bindListNative()
+    }
+
+    override fun onDestroyView() {
+        splitTask?.cancel()
+        splitTask = null
+        view?.findViewById<ViewGroup>(R.id.splitNativeAd)?.let(SmartPdfAds::release)
+        super.onDestroyView()
+    }
 }

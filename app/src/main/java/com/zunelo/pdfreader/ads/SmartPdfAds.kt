@@ -47,6 +47,7 @@ interface PageAdRefreshable {
 object AdScenes {
     val LAUNCH = AdScene(AdSlots.LAUNCH, "ad_open_launch")
     val CREATE_PDF = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_create_int")
+    val LARGE_FILE_SCAN = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_scan_int")
     val CLEAN_FILES = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_clean_int")
     val MERGE_PDF = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_merge_int")
     val SPLIT_PDF = AdScene(AdSlots.SCAN_INTERSTITIAL, "ad_split_int")
@@ -56,6 +57,7 @@ object AdScenes {
     val NEW_INTRO_INTERSTITIAL = AdScene(AdSlots.BACK_INTERSTITIAL, "new_intro_int")
     val UNINSTALL_INTERSTITIAL = AdScene(AdSlots.BACK_INTERSTITIAL, "page_uninstall_int")
     val HOME_NATIVE = AdScene(AdSlots.MAIN_NATIVE, "ad_main_nat")
+    val MERGE_LIST_NATIVE = AdScene(AdSlots.SCAN_NATIVE, "ad_merge_nat")
     val RESULT_NATIVE = AdScene(AdSlots.SCAN_NATIVE, "ad_result_nat")
     val NEW_LANGUAGE_NATIVE = AdScene(AdSlots.MAIN_NATIVE, "new_langua_nat")
     val NEW_INTRO_NATIVE = AdScene(AdSlots.SCAN_NATIVE, "new_intro_nat")
@@ -65,6 +67,7 @@ object AdScenes {
     val preloadOrder = listOf(
         LAUNCH,
         CREATE_PDF,
+        LARGE_FILE_SCAN,
         CLEAN_FILES,
         MERGE_PDF,
         SPLIT_PDF,
@@ -76,6 +79,7 @@ object AdScenes {
         HOME_NATIVE,
         NEW_LANGUAGE_NATIVE,
         UNINSTALL_NATIVE_ONE,
+        MERGE_LIST_NATIVE,
         RESULT_NATIVE,
         NEW_INTRO_NATIVE,
         UNINSTALL_NATIVE_TWO
@@ -96,6 +100,14 @@ object SmartPdfAds {
 
     private data class CachedAd(val value: Any, val unit: AdUnitConfig, val loadedAtMillis: Long)
 
+    private data class FullScreenSession(
+        val scene: AdScene,
+        val resumeTask: FullScreenResumeTask?,
+        val onComplete: () -> Unit,
+        var suppressContinuation: Boolean = false,
+        var completed: Boolean = false
+    )
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private val cache = mutableMapOf<String, CachedAd>()
     private val loadingSlots = mutableSetOf<String>()
@@ -107,6 +119,7 @@ object SmartPdfAds {
     private val bannerBindTokens = WeakHashMap<ViewGroup, Any>()
     private var application: Application? = null
     private var fullScreenShowing = false
+    private var activeFullScreenSession: FullScreenSession? = null
     private var lastFullscreenClosedAt = 0L
     fun initialize(application: Application) {
         this.application = application
@@ -149,6 +162,28 @@ object SmartPdfAds {
         return fullScreenShowing
     }
 
+    fun isLaunchFullScreenShowing(): Boolean {
+        check(Looper.myLooper() == Looper.getMainLooper())
+        return activeFullScreenSession?.scene?.adPosId == AdScenes.LAUNCH.adPosId
+    }
+
+    fun prepareForStartupRestart(cancelContinuation: Boolean) {
+        check(Looper.myLooper() == Looper.getMainLooper())
+        val session = activeFullScreenSession ?: return
+        session.suppressContinuation = true
+        val app = application ?: return
+        if (cancelContinuation) {
+            FullScreenResumeStore.clear(app)
+        } else {
+            session.resumeTask?.let { FullScreenResumeStore.save(app, it) }
+                ?: FullScreenResumeStore.clear(app)
+        }
+    }
+
+    fun onProviderAdActivityDestroyed() = onMain {
+        activeFullScreenSession?.let(::completeFullScreenSession)
+    }
+
     fun resetFullScreenInterval() = onMain {
         lastFullscreenClosedAt = 0L
     }
@@ -163,6 +198,7 @@ object SmartPdfAds {
         scene: AdScene,
         adSource: String = scene.adPosId,
         chanceAlreadyReported: Boolean = false,
+        resumeTask: FullScreenResumeTask? = null,
         onComplete: () -> Unit
     ) = onMain {
         if (
@@ -183,7 +219,15 @@ object SmartPdfAds {
         if (!chanceAlreadyReported) reportChanceIfEligible(scene, adSource)
         val cached = takeValidCache(scene.slotKey, FORMAT_APP_OPEN, FORMAT_INTERSTITIAL)
         when (val ad = cached?.value) {
-            is AppOpenAd, is InterstitialAd -> showFullScreen(activity, scene, adSource, cached.unit, ad, onComplete)
+            is AppOpenAd, is InterstitialAd -> showFullScreen(
+                activity,
+                scene,
+                adSource,
+                cached.unit,
+                ad,
+                resumeTask,
+                onComplete
+            )
             else -> {
                 load(scene, adSource)
                 onComplete()
@@ -407,7 +451,15 @@ object SmartPdfAds {
         loadCallbacks.remove(slotKey).orEmpty().forEach { it(loaded) }
     }
 
-    private fun showFullScreen(activity: Activity, scene: AdScene, adSource: String, unit: AdUnitConfig, ad: Any, onComplete: () -> Unit) {
+    private fun showFullScreen(
+        activity: Activity,
+        scene: AdScene,
+        adSource: String,
+        unit: AdUnitConfig,
+        ad: Any,
+        resumeTask: FullScreenResumeTask?,
+        onComplete: () -> Unit
+    ) {
         if (!AdLimitPolicy.canServeAds()) {
             onComplete()
             return
@@ -416,13 +468,11 @@ object SmartPdfAds {
         bindPaidEvent(ad, scene, unit)
         load(scene, adSource)
         val exposure = AdExposure(scene, adSource)
-        var completed = false
+        val session = FullScreenSession(scene, resumeTask, onComplete)
+        activeFullScreenSession = session
         var adShown = false
         fun complete() {
-            if (completed) return
-            completed = true
-            fullScreenShowing = false
-            onComplete()
+            completeFullScreenSession(session)
         }
         val callback = object : FullScreenContentCallback() {
             override fun onAdShowedFullScreenContent() {
@@ -454,6 +504,14 @@ object SmartPdfAds {
             }
             else -> complete()
         }
+    }
+
+    private fun completeFullScreenSession(session: FullScreenSession) {
+        if (session.completed) return
+        session.completed = true
+        if (activeFullScreenSession === session) activeFullScreenSession = null
+        fullScreenShowing = false
+        if (!session.suppressContinuation) session.onComplete()
     }
 
     private fun loadBannerCandidate(

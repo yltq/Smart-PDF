@@ -15,14 +15,18 @@ import com.zunelo.pdfreader.viewer.*
 
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.ItemTouchHelper
+import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.PageAdRefreshable
+import com.zunelo.pdfreader.ads.SmartPdfAds
 
-class ToolListFragment : Fragment(R.layout.fragment_tool_list) {
+class ToolListFragment : Fragment(R.layout.fragment_tool_list), PageAdRefreshable {
     companion object {
         const val MODE_MERGE = "merge"; const val MODE_SPLIT = "split"; const val MODE_PRINT = "print"; private const val ARG_MODE = "mode"
         fun newInstance(mode: String, preselected: DocumentItem? = null) = ToolListFragment().apply { arguments = Bundle().apply { putString(ARG_MODE, mode); preselected?.let(::putDocument) } }
@@ -64,7 +68,19 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list) {
         parentFragmentManager.setFragmentResultListener(mergeNameRequest, viewLifecycleOwner) { _, result ->
             result.getString(OutputNameDialogFragment.RESULT_NAME)?.let(::merge)
         }
+        bindListNative()
         load()
+    }
+
+    private fun bindListNative() {
+        val container = view?.findViewById<ViewGroup>(R.id.toolNativeAd) ?: return
+        if (mode == MODE_PRINT) {
+            SmartPdfAds.release(container)
+            container.visibility = View.GONE
+            return
+        }
+        container.visibility = View.VISIBLE
+        SmartPdfAds.bindNative(requireActivity(), AdScenes.MERGE_LIST_NATIVE, container)
     }
 
     private fun load() {
@@ -129,5 +145,18 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list) {
         }.also { it.start() }
     }
 
-    override fun onDestroyView() { mergeTask?.cancel(); mergeTask = null; super.onDestroyView() }
+    override fun refreshPageAds() = bindListNative()
+
+    override fun onHiddenChanged(hidden: Boolean) {
+        super.onHiddenChanged(hidden)
+        val container = view?.findViewById<ViewGroup>(R.id.toolNativeAd) ?: return
+        if (hidden) SmartPdfAds.release(container) else bindListNative()
+    }
+
+    override fun onDestroyView() {
+        mergeTask?.cancel()
+        mergeTask = null
+        view?.findViewById<ViewGroup>(R.id.toolNativeAd)?.let(SmartPdfAds::release)
+        super.onDestroyView()
+    }
 }

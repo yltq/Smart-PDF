@@ -5,6 +5,8 @@ import kotlinx.coroutines.delay
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
+import com.zunelo.pdfreader.BuildConfig
+import com.zunelo.pdfreader.common.AppLog
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.Body
@@ -34,7 +36,11 @@ object OkHttpManager {
             .create(JsonService::class.java)
     }
 
-    suspend fun postJson(url: String, bodyProvider: () -> String): String? {
+    suspend fun postJson(
+        url: String,
+        returnBodyInRelease: Boolean = false,
+        bodyProvider: () -> String
+    ): String? {
         repeat(MAX_RETRIES + 1) { attempt ->
             val response = try {
                 service.post(url, bodyProvider().toRequestBody(jsonMediaType))
@@ -51,7 +57,11 @@ object OkHttpManager {
                 } catch (_: Exception) {
                     null
                 }
-                if (body != null) return body
+                if (body != null) {
+                    val returnResponseBody = BuildConfig.DEBUG || returnBodyInRelease
+                    if (returnResponseBody) AppLog.debug { "postJson response: $body" }
+                    return if (returnResponseBody) body else ""
+                }
             }
             response?.errorBody()?.close()
             if (attempt < MAX_RETRIES) delay(RETRY_INTERVAL_MILLIS)

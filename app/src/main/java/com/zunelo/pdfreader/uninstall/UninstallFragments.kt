@@ -12,6 +12,7 @@ import com.zunelo.pdfreader.R
 import com.zunelo.pdfreader.application.MainActivity
 import android.view.ViewGroup
 import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.FullScreenResumeTask
 import com.zunelo.pdfreader.ads.SmartPdfAds
 
 class UninstallStepOneFragment : Fragment(R.layout.fragment_uninstall_step_one) {
@@ -24,7 +25,11 @@ class UninstallStepOneFragment : Fragment(R.layout.fragment_uninstall_step_one) 
         view.findViewById<View>(R.id.discoverMore).setOnClickListener(leaveFlow)
         view.findViewById<View>(R.id.keepApp).setOnClickListener(leaveFlow)
         view.findViewById<View>(R.id.continueUninstall).setOnClickListener {
-            SmartPdfAds.show(activity, AdScenes.UNINSTALL_INTERSTITIAL) {
+            SmartPdfAds.show(
+                activity,
+                AdScenes.UNINSTALL_INTERSTITIAL,
+                resumeTask = FullScreenResumeTask.openUninstallStepTwo()
+            ) {
                 activity.showRoot(UninstallStepTwoFragment())
             }
         }

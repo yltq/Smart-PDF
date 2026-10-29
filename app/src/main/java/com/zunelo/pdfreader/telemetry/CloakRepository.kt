@@ -40,7 +40,7 @@ object CloakRepository {
         if (endpoint.isBlank() || !::application.isInitialized || cachedResult() != null || !requesting.compareAndSet(false, true)) return
         scope.launch {
             val payload = SmartPdfSignalHub.cloakPayload()
-            val result = OkHttpManager.postJson(endpoint) {
+            val result = OkHttpManager.postJson(endpoint, returnBodyInRelease = true) {
                 payload.put("elgin", System.currentTimeMillis()).toString()
             }?.let(::parseResult)
             if (result != null) {

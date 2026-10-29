@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import java.util.Locale
 import android.view.ViewGroup
 import com.zunelo.pdfreader.ads.AdScenes
+import com.zunelo.pdfreader.ads.FullScreenResumeTask
 import com.zunelo.pdfreader.ads.SmartPdfAds
 import com.zunelo.pdfreader.ads.PageAdRefreshable
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
@@ -78,7 +79,14 @@ class LanguageFragment : Fragment(R.layout.fragment_language), PageAdRefreshable
                         (requireActivity() as MainActivity).applyLanguage(selected, 3)
                     }
                 }
-                if (onboarding) SmartPdfAds.show(requireActivity(), AdScenes.NEW_LANGUAGE_INTERSTITIAL, onComplete = continueFlow)
+                if (onboarding) {
+                    SmartPdfAds.show(
+                        requireActivity(),
+                        AdScenes.NEW_LANGUAGE_INTERSTITIAL,
+                        resumeTask = FullScreenResumeTask.applyNewUserLanguage(selected),
+                        onComplete = continueFlow
+                    )
+                }
                 else continueFlow()
             }
         }
