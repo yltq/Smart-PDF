@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.TextUtils
 import com.google.firebase.FirebaseApp
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.zunelo.pdfreader.BuildConfig
 import com.zunelo.pdfreader.application.FacebookRemoteInitializer
 import com.zunelo.pdfreader.common.AppLog
 import com.zunelo.pdfreader.guard.AcquisitionGuard
@@ -19,22 +20,38 @@ object AdConfigRepository {
     private const val PAID_USER_REMOTE_KEY = "yfv_user"
     private const val ORGANIC_USER_REMOTE_KEY = "vfa_user"
 
-    private const val TEST_APP_OPEN_ID = "ca-app-pub-3940256099942544/9257395921"
-    private const val TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
-    private const val TEST_NATIVE_ID = "ca-app-pub-3940256099942544/2247696110"
-    private const val TEST_BANNER_ID = "ca-app-pub-3940256099942544/2014213617"
+    private const val GOOGLE_TEST_APP_OPEN_ID = "ca-app-pub-3940256099942544/9257395921"
+    private const val GOOGLE_TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
+    private const val GOOGLE_TEST_NATIVE_ID = "ca-app-pub-3940256099942544/2247696110"
+    private const val GOOGLE_TEST_BANNER_ID = "ca-app-pub-3940256099942544/2014213617"
+
+    private const val DEFAULT_LAUNCH_APP_OPEN_ID = ""
+    private const val DEFAULT_SCAN_INTERSTITIAL_ID = ""
+    private const val DEFAULT_BACK_INTERSTITIAL_ID = ""
+    private const val DEFAULT_MAIN_NATIVE_ID = ""
+    private const val DEFAULT_SCAN_NATIVE_ID = ""
+    private const val DEFAULT_MAIN_BANNER_ID = ""
 
     private val localConfig = AdConfig(
         slots = mapOf(
             AdSlots.LAUNCH to listOf(
-                unit(TEST_APP_OPEN_ID, "op", 13_800L, priority = 3),
-                unit(TEST_INTERSTITIAL_ID, "int", 3_000L, priority = 2)
+                unit(localAdId(DEFAULT_LAUNCH_APP_OPEN_ID, GOOGLE_TEST_APP_OPEN_ID), "op", 13_800L),
             ),
-            AdSlots.SCAN_INTERSTITIAL to listOf(unit(TEST_INTERSTITIAL_ID, "int", 3_000L)),
-            AdSlots.BACK_INTERSTITIAL to listOf(unit(TEST_INTERSTITIAL_ID, "int", 3_000L)),
-            AdSlots.MAIN_NATIVE to listOf(unit(TEST_NATIVE_ID, "nat", 3_000L)),
-            AdSlots.SCAN_NATIVE to listOf(unit(TEST_NATIVE_ID, "nat", 3_000L)),
-            AdSlots.MAIN_BANNER to listOf(unit(TEST_BANNER_ID, "ban", 3_000L))
+            AdSlots.SCAN_INTERSTITIAL to listOf(
+                unit(localAdId(DEFAULT_SCAN_INTERSTITIAL_ID, GOOGLE_TEST_INTERSTITIAL_ID), "int", 3_000L)
+            ),
+            AdSlots.BACK_INTERSTITIAL to listOf(
+                unit(localAdId(DEFAULT_BACK_INTERSTITIAL_ID, GOOGLE_TEST_INTERSTITIAL_ID), "int", 3_000L)
+            ),
+            AdSlots.MAIN_NATIVE to listOf(
+                unit(localAdId(DEFAULT_MAIN_NATIVE_ID, GOOGLE_TEST_NATIVE_ID), "nat", 3_000L)
+            ),
+            AdSlots.SCAN_NATIVE to listOf(
+                unit(localAdId(DEFAULT_SCAN_NATIVE_ID, GOOGLE_TEST_NATIVE_ID), "nat", 3_000L)
+            ),
+            AdSlots.MAIN_BANNER to listOf(
+                unit(localAdId(DEFAULT_MAIN_BANNER_ID, GOOGLE_TEST_BANNER_ID), "ban", 3_000L)
+            )
         )
     )
 
@@ -354,6 +371,9 @@ object AdConfigRepository {
     }
 
     private fun Boolean.asInt(): Int = if (this) 1 else 0
+
+    private fun localAdId(defaultId: String, googleTestId: String): String =
+        if (BuildConfig.DEBUG) googleTestId else defaultId
 
     private fun JSONArray?.strings(): List<String> {
         if (this == null) return emptyList()
