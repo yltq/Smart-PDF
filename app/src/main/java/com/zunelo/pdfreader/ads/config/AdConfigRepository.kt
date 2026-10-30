@@ -35,7 +35,7 @@ object AdConfigRepository {
     private val localConfig = AdConfig(
         slots = mapOf(
             AdSlots.LAUNCH to listOf(
-                unit(localAdId(DEFAULT_LAUNCH_APP_OPEN_ID, GOOGLE_TEST_APP_OPEN_ID), "op", 13_800L),
+                unit(localAdId(DEFAULT_LAUNCH_APP_OPEN_ID, GOOGLE_TEST_APP_OPEN_ID), "op", 13_800L)
             ),
             AdSlots.SCAN_INTERSTITIAL to listOf(
                 unit(localAdId(DEFAULT_SCAN_INTERSTITIAL_ID, GOOGLE_TEST_INTERSTITIAL_ID), "int", 3_000L)
