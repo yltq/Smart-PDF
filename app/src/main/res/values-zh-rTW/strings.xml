@@ -28,4 +28,7 @@
     <string name="organize_pages">整理頁面</string><string name="page_manage_hint">選擇要旋轉或刪除的頁面。長按並拖曳可重新排序。</string><string name="page_manage_selection">已選擇 %1$d 頁</string><string name="rotate">旋轉</string><string name="save_copy">儲存副本</string><string name="select_pages_to_delete">請先選擇頁面，必須至少保留一頁。</string><string name="save_organized_pdf">儲存整理後的 PDF</string><string name="organize_complete">頁面已更新</string>
     <string name="add_watermark">加入浮水印</string><string name="watermark_hint">浮水印會以對角線方式套用至每個頁面。</string><string name="watermark_text">浮水印文字</string><string name="adding_watermark">正在加入浮水印…</string><string name="watermark_complete">已加入浮水印</string><plurals name="scan_selected_pages"><item quantity="other">已選擇 %1$d 頁 · 長按並拖曳可重新排序</item></plurals>
     <string name="delete">刪除</string><string name="delete_file_title">要刪除此檔案嗎？</string><string name="delete_file_message">此操作無法復原。</string><string name="delete_failed">無法刪除此檔案。</string>
+<string name="permission_settings_title">允許存取檔案</string>
+<string name="permission_settings_message">系統已不再顯示 Smart PDF 的權限要求。請前往應用程式設定允許檔案存取。</string>
+<string name="permission_settings_action">前往設定</string>
 </resources>

@@ -154,4 +154,7 @@
     <string name="intro_tools_description">สแกน รวม แยก และใส่คำอธิบาย PDF</string>
     <string name="skip">ข้าม</string>
     <string name="get_started">เริ่มใช้งาน</string>
+<string name="permission_settings_title">อนุญาตการเข้าถึงไฟล์</string>
+<string name="permission_settings_message">ระบบปิดการแจ้งขอสิทธิ์สำหรับ Smart PDF แล้ว โปรดเปิดการตั้งค่าแอปเพื่ออนุญาตการเข้าถึงไฟล์</string>
+<string name="permission_settings_action">เปิดการตั้งค่า</string>
 </resources>

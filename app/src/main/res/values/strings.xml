@@ -4,6 +4,9 @@
     <string name="storage_access_message">Enable file access so Smart PDF can discover, open, and organize documents saved on this device.</string>
     <string name="storage_access_action">Enable file access</string>
     <string name="storage_access_denied">File access is still disabled</string>
+    <string name="permission_settings_title">Allow file access</string>
+    <string name="permission_settings_message">System permission prompts are turned off for Smart PDF. Open app settings to allow file access.</string>
+    <string name="permission_settings_action">Open settings</string>
     <string name="rename">Rename</string>
     <string name="rename_extension_hint">The file extension will stay unchanged</string>
     <string name="rename_failed">Unable to rename this file.</string>

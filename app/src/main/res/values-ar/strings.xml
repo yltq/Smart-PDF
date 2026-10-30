@@ -154,4 +154,7 @@
     <string name="intro_tools_description">امسح ملفات PDF وادمجها وقسّمها وأضف إليها التعليقات.</string>
     <string name="skip">تخطي</string>
     <string name="get_started">ابدأ الآن</string>
+<string name="permission_settings_title">السماح بالوصول إلى الملفات</string>
+<string name="permission_settings_message">تم إيقاف مطالبات أذونات النظام لتطبيق Smart PDF. افتح إعدادات التطبيق للسماح بالوصول إلى الملفات.</string>
+<string name="permission_settings_action">فتح الإعدادات</string>
 </resources>

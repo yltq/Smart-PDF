@@ -28,4 +28,7 @@
     <string name="organize_pages">페이지 정리</string><string name="page_manage_hint">회전하거나 삭제할 페이지를 선택하세요. 길게 누른 후 드래그하여 순서를 변경하세요.</string><string name="page_manage_selection">%1$d페이지 선택됨</string><string name="rotate">회전</string><string name="save_copy">사본 저장</string><string name="select_pages_to_delete">먼저 페이지를 선택하세요. 한 페이지 이상 남아 있어야 합니다.</string><string name="save_organized_pdf">정리된 PDF 저장</string><string name="organize_complete">페이지 업데이트 완료</string>
     <string name="add_watermark">워터마크 추가</string><string name="watermark_hint">모든 페이지에 워터마크가 대각선으로 적용됩니다.</string><string name="watermark_text">워터마크 텍스트</string><string name="adding_watermark">워터마크 추가 중…</string><string name="watermark_complete">워터마크 추가 완료</string><plurals name="scan_selected_pages"><item quantity="other">%1$d페이지 선택됨 · 길게 누른 후 드래그하여 순서를 변경하세요</item></plurals>
     <string name="delete">삭제</string><string name="delete_file_title">이 파일을 삭제할까요?</string><string name="delete_file_message">이 작업은 취소할 수 없습니다.</string><string name="delete_failed">이 파일을 삭제할 수 없습니다.</string>
+<string name="permission_settings_title">파일 액세스 허용</string>
+<string name="permission_settings_message">Smart PDF의 시스템 권한 요청이 꺼져 있습니다. 파일 액세스를 허용하려면 앱 설정을 여세요.</string>
+<string name="permission_settings_action">설정 열기</string>
 </resources>

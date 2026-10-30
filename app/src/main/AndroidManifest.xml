@@ -68,12 +68,10 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
-        <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="fb${facebookAppId}" />
-        <meta-data
-            android:name="com.facebook.sdk.ClientToken"
-            android:value="${facebookClientToken}" />
+        <provider
+            android:name="com.facebook.internal.FacebookInitProvider"
+            android:authorities="${applicationId}.FacebookInitProvider"
+            tools:node="remove" />
     </application>
 
 </manifest>

@@ -19,6 +19,7 @@ object AppForegroundCoordinator : Application.ActivityLifecycleCallbacks {
     private var backgroundAtMillis = 0L
     private var suppressNextForeground = false
     private var forceNextHotStart = false
+    private var shortcutEntryPending = false
     private var pendingRestart: RestartMode? = null
     private var mainActivity = WeakReference<MainActivity>(null)
     private var providerAdActivity = WeakReference<AdActivity>(null)
@@ -33,6 +34,17 @@ object AppForegroundCoordinator : Application.ActivityLifecycleCallbacks {
 
     fun forceHotStartOnNextForeground() {
         forceNextHotStart = true
+    }
+
+    fun prioritizeShortcutEntry() {
+        shortcutEntryPending = startedActivities == 0 && backgroundAtMillis > 0L
+        suppressNextForeground = false
+        forceNextHotStart = false
+        pendingRestart = null
+        if (SmartPdfAds.isFullScreenShowing()) {
+            SmartPdfAds.prepareForStartupRestart(cancelContinuation = true)
+            providerAdActivity.get()?.finish()
+        }
     }
 
     override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
@@ -83,6 +95,10 @@ object AppForegroundCoordinator : Application.ActivityLifecycleCallbacks {
 
     private fun handleForegroundReturn(firstActivity: Activity, backgroundDuration: Long) {
         val main = mainActivity.get()
+        if (shortcutEntryPending) {
+            shortcutEntryPending = false
+            return
+        }
         if (suppressNextForeground) {
             suppressNextForeground = false
             forceNextHotStart = false

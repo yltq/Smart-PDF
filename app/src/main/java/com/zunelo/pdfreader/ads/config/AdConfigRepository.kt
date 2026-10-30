@@ -4,6 +4,8 @@ import android.content.Context
 import android.text.TextUtils
 import com.google.firebase.FirebaseApp
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
+import com.zunelo.pdfreader.application.FacebookRemoteInitializer
+import com.zunelo.pdfreader.common.AppLog
 import com.zunelo.pdfreader.guard.AcquisitionGuard
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -134,24 +136,39 @@ object AdConfigRepository {
             .continueWithTask { remoteConfig.fetchAndActivate() }
             .addOnCompleteListener { task ->
                 if (!task.isSuccessful) {
+                    AppLog.debug {
+                        "Firebase Remote Config fetch failed: ${task.exception?.message.orEmpty()}"
+                    }
                     currentPaidUserConfig = localPaidUserConfig
                     currentOrganicUserConfig = localOrganicUserConfig
                     return@addOnCompleteListener
                 }
-                parse(remoteConfig.getString(REMOTE_KEY))?.let { mutableConfig.value = it }
-                parseReferrerRules(remoteConfig.getString(REFERRER_REMOTE_KEY))?.let {
+                val adConfig = remoteConfig.loggedValue(REMOTE_KEY)
+                val referrerConfig = remoteConfig.loggedValue(REFERRER_REMOTE_KEY)
+                val paidUserConfig = remoteConfig.loggedValue(PAID_USER_REMOTE_KEY)
+                val organicUserConfig = remoteConfig.loggedValue(ORGANIC_USER_REMOTE_KEY)
+                val adLimitConfig = remoteConfig.loggedValue(AdLimitPolicy.REMOTE_KEY)
+                val facebookConfig = remoteConfig.loggedValue(FacebookRemoteInitializer.REMOTE_KEY)
+
+                parse(adConfig)?.let { mutableConfig.value = it }
+                parseReferrerRules(referrerConfig)?.let {
                     currentReferrerRules = it
                 }
                 currentPaidUserConfig = parseUserConfig(
-                    remoteConfig.getString(PAID_USER_REMOTE_KEY),
+                    paidUserConfig,
                     localPaidUserConfig
                 ) ?: localPaidUserConfig
                 currentOrganicUserConfig = parseUserConfig(
-                    remoteConfig.getString(ORGANIC_USER_REMOTE_KEY),
+                    organicUserConfig,
                     localOrganicUserConfig
                 ) ?: localOrganicUserConfig
-                AdLimitPolicy.applyRemote(remoteConfig.getString(AdLimitPolicy.REMOTE_KEY))
+                AdLimitPolicy.applyRemote(adLimitConfig)
+                FacebookRemoteInitializer.initialize(firebaseApp.applicationContext, facebookConfig)
             }
+    }
+
+    private fun FirebaseRemoteConfig.loggedValue(key: String): String = getString(key).also { value ->
+        AppLog.debug { "Firebase Remote Config[$key]: $value" }
     }
 
     private fun parse(rawConfig: String): AdConfig? {

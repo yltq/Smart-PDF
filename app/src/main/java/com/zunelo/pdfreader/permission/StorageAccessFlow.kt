@@ -26,6 +26,10 @@ class StorageAccessFlow(
     private val onDenied: () -> Unit,
     private val requireWriteAccess: Boolean = false
 ) {
+    companion object {
+        private const val KEY_LEGACY_REQUESTED = "legacy_requested"
+    }
+
     private val preferences by lazy { fragment.requireContext().getSharedPreferences("storage_access", 0) }
     private var waitingForGrant = false
     private val legacyLauncher = fragment.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -33,6 +37,13 @@ class StorageAccessFlow(
     }
     private val settingsLauncher = fragment.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) handlePermissionResult() else denyPermissionRequest()
+    }
+
+    init {
+        fragment.childFragmentManager.setFragmentResultListener(
+            StoragePermissionDialogFragment.RESULT_REQUEST,
+            fragment
+        ) { _, _ -> openLegacySettings() }
     }
 
     fun request() {
@@ -52,14 +63,22 @@ class StorageAccessFlow(
 
     private fun requestLegacyAccess() {
         val permissions = arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        val requestedBefore = preferences.getBoolean("legacy_requested", false)
-        val permanentlyDenied = requestedBefore && permissions.any { !fragment.shouldShowRequestPermissionRationale(it) }
-        if (permanentlyDenied) {
-            (fragment.requireActivity() as? MainActivity)?.suppressNextPageAdRefresh()
-            settingsLauncher.launch(PermissionGatewayActivity.appDetailsIntent(fragment.requireContext()))
+        if (isLegacyPermissionPermanentlyDenied(permissions)) {
+            showLegacySettingsDialog()
         } else {
-            preferences.edit().putBoolean("legacy_requested", true).apply()
+            preferences.edit().putBoolean(KEY_LEGACY_REQUESTED, true).apply()
             legacyLauncher.launch(permissions)
+        }
+    }
+
+    private fun openLegacySettings() {
+        waitingForGrant = true
+        (fragment.requireActivity() as? MainActivity)?.suppressNextPageAdRefresh()
+        if (runCatching {
+                settingsLauncher.launch(PermissionGatewayActivity.appDetailsIntent(fragment.requireContext()))
+            }.isFailure
+        ) {
+            denyPermissionRequest()
         }
     }
 
@@ -67,10 +86,37 @@ class StorageAccessFlow(
         if (hasRequiredAccess()) {
             if (waitingForGrant) SmartPdfSignalHub.recordCustomSignal("file_permission_success")
             waitingForGrant = false
+            preferences.edit().remove(KEY_LEGACY_REQUESTED).apply()
             onGranted()
+        } else if (
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
+            isLegacyPermissionPermanentlyDenied(
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            )
+        ) {
+            showLegacySettingsDialog()
         } else {
             denyPermissionRequest()
         }
+    }
+
+    private fun isLegacyPermissionPermanentlyDenied(permissions: Array<String>): Boolean {
+        if (!preferences.getBoolean(KEY_LEGACY_REQUESTED, false)) return false
+        return permissions.any { permission ->
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                fragment.requireContext(),
+                permission
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED &&
+                !fragment.shouldShowRequestPermissionRationale(permission)
+        }
+    }
+
+    private fun showLegacySettingsDialog() {
+        waitingForGrant = false
+        onDenied()
+        val manager = fragment.childFragmentManager
+        if (manager.isStateSaved || manager.findFragmentByTag(StoragePermissionDialogFragment.TAG) != null) return
+        StoragePermissionDialogFragment().show(manager, StoragePermissionDialogFragment.TAG)
     }
 
     private fun denyPermissionRequest() {

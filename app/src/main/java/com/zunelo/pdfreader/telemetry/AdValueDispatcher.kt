@@ -31,12 +31,17 @@ object AdValueDispatcher {
 
     private val totalLock = Any()
     private lateinit var application: Application
+    @Volatile
     private var facebookLogger: AppEventsLogger? = null
 
     fun initialize(application: Application) {
         this.application = application
-        facebookLogger = runCatching { AppEventsLogger.newLogger(application) }.getOrNull()
         AppsFlyerTracker.initialize(application)
+    }
+
+    fun initializeFacebook() {
+        if (!::application.isInitialized || facebookLogger != null) return
+        facebookLogger = runCatching { AppEventsLogger.newLogger(application) }.getOrNull()
     }
 
     fun dispatch(

@@ -208,7 +208,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
         (requireActivity() as MainActivity).apply {
             showRoot(target)
             supportFragmentManager.executePendingTransactions()
-            consumePendingFullScreenResumeTask()
+            if (launchSource() != SOURCE_SHORTCUT) consumePendingFullScreenResumeTask()
         }
     }
 

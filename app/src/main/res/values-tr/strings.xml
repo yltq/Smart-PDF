@@ -154,4 +154,7 @@
     <string name="intro_tools_description">PDF’leri tarayın, birleştirin, bölün ve açıklama ekleyin.</string>
     <string name="skip">Atla</string>
     <string name="get_started">Başlayın</string>
+<string name="permission_settings_title">Dosya erişimine izin ver</string>
+<string name="permission_settings_message">Smart PDF için sistem izin istemleri kapalı. Dosya erişimine izin vermek için uygulama ayarlarını açın.</string>
+<string name="permission_settings_action">Ayarları aç</string>
 </resources>

@@ -154,4 +154,7 @@
     <string name="intro_tools_description">PDF स्कैन, मर्ज, विभाजित और एनोटेट करें।</string>
     <string name="skip">छोड़ें</string>
     <string name="get_started">शुरू करें</string>
+<string name="permission_settings_title">फ़ाइल एक्सेस की अनुमति दें</string>
+<string name="permission_settings_message">Smart PDF के लिए सिस्टम अनुमति संकेत बंद हैं। फ़ाइल एक्सेस की अनुमति देने के लिए ऐप सेटिंग खोलें।</string>
+<string name="permission_settings_action">सेटिंग खोलें</string>
 </resources>

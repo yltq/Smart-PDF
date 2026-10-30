@@ -11,7 +11,6 @@ import androidx.viewpager2.widget.ViewPager2
 import com.zunelo.pdfreader.R
 import com.zunelo.pdfreader.application.MainActivity
 import com.zunelo.pdfreader.common.dp
-import com.zunelo.pdfreader.home.HomeFragment
 import kotlin.math.abs
 import android.view.ViewGroup
 import com.zunelo.pdfreader.ads.AdScenes
@@ -98,8 +97,7 @@ class IntroFragment : Fragment(R.layout.fragment_intro), PageAdRefreshable {
             resumeTask = FullScreenResumeTask.completeNewUser()
         ) {
             (requireActivity() as MainActivity).apply {
-                completeNewUserFlow()
-                showRoot(HomeFragment())
+                completeNewUserFlowAndOpenDestination()
             }
         }
     }

@@ -28,4 +28,7 @@
     <string name="organize_pages">ページを整理</string><string name="page_manage_hint">回転または削除するページを選択します。長押ししてドラッグすると並べ替えられます。</string><string name="page_manage_selection">%1$d ページを選択</string><string name="rotate">回転</string><string name="save_copy">コピーを保存</string><string name="select_pages_to_delete">先にページを選択してください。少なくとも 1 ページは残す必要があります。</string><string name="save_organized_pdf">整理した PDF を保存</string><string name="organize_complete">ページを更新しました</string>
     <string name="add_watermark">透かしを追加</string><string name="watermark_hint">すべてのページに透かしが斜めに追加されます。</string><string name="watermark_text">透かしテキスト</string><string name="adding_watermark">透かしを追加しています…</string><string name="watermark_complete">透かしを追加しました</string><plurals name="scan_selected_pages"><item quantity="other">%1$d ページを選択 · 長押ししてドラッグすると並べ替えられます</item></plurals>
     <string name="delete">削除</string><string name="delete_file_title">このファイルを削除しますか？</string><string name="delete_file_message">この操作は元に戻せません。</string><string name="delete_failed">このファイルを削除できませんでした。</string>
+<string name="permission_settings_title">ファイルへのアクセスを許可</string>
+<string name="permission_settings_message">Smart PDF のシステム権限ダイアログは無効になっています。ファイルへのアクセスを許可するには、アプリの設定を開いてください。</string>
+<string name="permission_settings_action">設定を開く</string>
 </resources>

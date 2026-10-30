@@ -21,4 +21,7 @@
     <string name="intro_tools_description">扫描、合并、分割和标注 PDF。</string>
     <string name="skip">跳过</string>
     <string name="get_started">开始使用</string>
+<string name="permission_settings_title">允许访问文件</string>
+<string name="permission_settings_message">系统已不再显示 Smart PDF 的权限请求。请前往应用设置允许文件访问。</string>
+<string name="permission_settings_action">前往设置</string>
 </resources>

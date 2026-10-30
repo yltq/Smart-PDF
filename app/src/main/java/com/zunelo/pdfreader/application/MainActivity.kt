@@ -42,6 +42,7 @@ import androidx.fragment.app.FragmentManager
 class MainActivity : AppCompatActivity() {
     companion object {
         private const val STATE_NEW_USER_FLOW = "state_new_user_flow"
+        private const val STATE_AFTER_NEW_USER_DESTINATION = "state_after_new_user_destination"
         private const val PREFERENCES_ENTRY = "entry_flow"
         private const val KEY_UNINSTALL_BACKGROUND = "uninstall_background"
         const val ACTION_SHORTCUT_UNINSTALL = "com.zunelo.pdfreader.action.UNINSTALL"
@@ -50,12 +51,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var launchNewUserFlow = false
+    private var afterNewUserDestination = SplashFragment.DESTINATION_HOME
     private var hotStartRouting = false
+    private var startupRouteVersion = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (savedInstanceState == null) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         launchNewUserFlow = savedInstanceState?.getBoolean(STATE_NEW_USER_FLOW)
             ?: NewUserFlow.consumeForLaunch(this)
+        afterNewUserDestination = savedInstanceState?.getString(STATE_AFTER_NEW_USER_DESTINATION)
+            ?: SplashFragment.DESTINATION_HOME
         val entryPreferences = getSharedPreferences(PREFERENCES_ENTRY, 0)
         val uninstallWasBackgrounded = entryPreferences.getBoolean(KEY_UNINSTALL_BACKGROUND, false)
         if (uninstallWasBackgrounded) {
@@ -139,6 +144,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean(STATE_NEW_USER_FLOW, launchNewUserFlow)
+        outState.putString(STATE_AFTER_NEW_USER_DESTINATION, afterNewUserDestination)
         super.onSaveInstanceState(outState)
     }
 
@@ -151,6 +157,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showStartup(intent: Intent) {
+        startupRouteVersion++
+        val shortcutEntry = intent.action in setOf(
+            ACTION_SHORTCUT_UNINSTALL,
+            ACTION_SHORTCUT_VIEW,
+            ACTION_SHORTCUT_SCAN
+        )
+        if (shortcutEntry) {
+            AppForegroundCoordinator.prioritizeShortcutEntry()
+            FullScreenResumeStore.clear(this)
+        }
         if (intent.action == ACTION_SHORTCUT_UNINSTALL) {
             SmartPdfSignalHub.recordCustomSignal("shortcut_uninstall_click")
         }
@@ -159,12 +175,19 @@ class MainActivity : AppCompatActivity() {
             ACTION_SHORTCUT_SCAN -> SplashFragment.DESTINATION_SCAN
             else -> SplashFragment.DESTINATION_HOME
         }
-        val launchSource = if (intent.action in setOf(ACTION_SHORTCUT_UNINSTALL, ACTION_SHORTCUT_VIEW, ACTION_SHORTCUT_SCAN)) {
+        val launchSource = if (shortcutEntry) {
             SplashFragment.SOURCE_SHORTCUT
         } else {
             intent.getStringExtra(SplashFragment.EXTRA_AD_SOURCE) ?: SplashFragment.SOURCE_OPEN
         }
         val showNewUserFlow = launchNewUserFlow
+        if (showNewUserFlow) {
+            afterNewUserDestination = if (destination == SplashFragment.DESTINATION_SCAN) {
+                SplashFragment.DESTINATION_SCAN
+            } else {
+                SplashFragment.DESTINATION_HOME
+            }
+        }
         showRoot(SplashFragment.newInstance(showNewUserFlow, destination, launchSource))
     }
 
@@ -187,7 +210,12 @@ class MainActivity : AppCompatActivity() {
     internal fun restartFromForeground(mode: AppForegroundCoordinator.RestartMode) {
         if (hotStartRouting) return
         hotStartRouting = true
+        val expectedRouteVersion = startupRouteVersion
         window.decorView.post {
+            if (expectedRouteVersion != startupRouteVersion) {
+                hotStartRouting = false
+                return@post
+            }
             if (!isFinishing && !isDestroyed) {
                 val current = supportFragmentManager.findFragmentById(R.id.main)
                 val splash = if (mode == AppForegroundCoordinator.RestartMode.RESTART_CURRENT_SPLASH) {
@@ -234,8 +262,7 @@ class MainActivity : AppCompatActivity() {
                 applyNewUserLanguage(languageTag)
             }
             FullScreenResumeTask.Action.COMPLETE_NEW_USER -> {
-                completeNewUserFlow()
-                showRoot(HomeFragment())
+                completeNewUserFlowAndOpenDestination()
             }
             FullScreenResumeTask.Action.OPEN_UNINSTALL_STEP_TWO -> showRoot(UninstallStepTwoFragment())
         }
@@ -302,6 +329,13 @@ class MainActivity : AppCompatActivity() {
 
     fun completeNewUserFlow() {
         launchNewUserFlow = false
+    }
+
+    fun completeNewUserFlowAndOpenDestination() {
+        completeNewUserFlow()
+        val startScan = afterNewUserDestination == SplashFragment.DESTINATION_SCAN
+        afterNewUserDestination = SplashFragment.DESTINATION_HOME
+        showRoot(HomeFragment.newInstance(startScan = startScan))
     }
 
     fun leaveUninstallFlow() {
