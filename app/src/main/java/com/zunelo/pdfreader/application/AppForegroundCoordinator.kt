@@ -64,10 +64,19 @@ object AppForegroundCoordinator : Application.ActivityLifecycleCallbacks {
 
     override fun onActivityResumed(activity: Activity) {
         track(activity)
-        if (activity is MainActivity) dispatchPendingRestart(activity)
+        if (activity is MainActivity && pendingRestart != null) {
+            val restart = pendingRestart
+            SmartPdfAds.prepareForStartupRestart(
+                cancelContinuation = restart == RestartMode.RESTART_CURRENT_SPLASH
+            )
+            dispatchPendingRestart(activity)
+        }
+        SmartPdfAds.onHostActivityResumed(activity)
     }
 
-    override fun onActivityPaused(activity: Activity) = Unit
+    override fun onActivityPaused(activity: Activity) {
+        SmartPdfAds.onHostActivityPaused(activity)
+    }
 
     override fun onActivityStopped(activity: Activity) {
         startedActivities = (startedActivities - 1).coerceAtLeast(0)

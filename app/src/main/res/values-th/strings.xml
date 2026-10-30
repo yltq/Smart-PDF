@@ -157,4 +157,5 @@
 <string name="permission_settings_title">อนุญาตการเข้าถึงไฟล์</string>
 <string name="permission_settings_message">ระบบปิดการแจ้งขอสิทธิ์สำหรับ Smart PDF แล้ว โปรดเปิดการตั้งค่าแอปเพื่ออนุญาตการเข้าถึงไฟล์</string>
 <string name="permission_settings_action">เปิดการตั้งค่า</string>
+    <string name="file_path">เส้นทางไฟล์</string><string name="file_path_copied">คัดลอกเส้นทางไฟล์แล้ว</string><string name="preview_file">ดูตัวอย่างไฟล์</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">เนื้อหาไฟล์บีบอัด</string><string name="file_version">เวอร์ชัน</string><string name="file_size">ขนาด</string>
 </resources>

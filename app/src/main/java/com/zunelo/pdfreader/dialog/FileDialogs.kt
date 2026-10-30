@@ -16,6 +16,9 @@ import com.zunelo.pdfreader.viewer.*
 import android.app.Activity
 import android.content.res.ColorStateList
 import android.content.Intent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -42,8 +45,12 @@ object FileDialogs {
     const val RESULT_CHANGED = "file_changed"
     const val RESULT_VIEWER_CHANGED = "viewer_file_changed"
     const val RESULT_ACTION = "file_action"
+    const val RESULT_URI = "file_uri"
+    const val RESULT_OLD_URI = "old_file_uri"
+    const val RESULT_FAVORITE = "favorite"
     const val ACTION_RENAMED = "renamed"
     const val ACTION_DELETED = "deleted"
+    const val ACTION_FAVORITE = "favorite"
     fun share(activity: Activity, item: DocumentItem) {
         val shareUri: Uri = runCatching { DocumentStore.shareUri(activity, item) }.getOrElse { item.uri }
         (activity as? MainActivity)?.suppressNextPageAdRefresh()
@@ -78,7 +85,10 @@ class RenameDialogFragment : BottomSheetDialogFragment() {
             }
             val renamed = DocumentStore.renameItem(requireContext(), item, name)
             if (renamed != null) {
-                val result = Bundle().putDocument(renamed).apply { putString(FileDialogs.RESULT_ACTION, FileDialogs.ACTION_RENAMED) }
+                val result = Bundle().putDocument(renamed).apply {
+                    putString(FileDialogs.RESULT_ACTION, FileDialogs.ACTION_RENAMED)
+                    putString(FileDialogs.RESULT_OLD_URI, item.uri.toString())
+                }
                 parentFragmentManager.setFragmentResult(FileDialogs.RESULT_CHANGED, result)
                 if (requireArguments().getBoolean(ARG_NOTIFY_VIEWER)) parentFragmentManager.setFragmentResult(FileDialogs.RESULT_VIEWER_CHANGED, result)
                 dismiss()
@@ -150,7 +160,10 @@ class DeleteConfirmDialogFragment : BottomSheetDialogFragment() {
         view.findViewById<View>(R.id.cancelDelete).setOnClickListener { dismiss() }
         view.findViewById<View>(R.id.confirmDelete).setOnClickListener {
             if (DocumentStore.delete(requireContext(), item)) {
-                val result = Bundle().apply { putString(FileDialogs.RESULT_ACTION, FileDialogs.ACTION_DELETED) }
+                val result = Bundle().apply {
+                    putString(FileDialogs.RESULT_ACTION, FileDialogs.ACTION_DELETED)
+                    putString(FileDialogs.RESULT_URI, item.uri.toString())
+                }
                 parentFragmentManager.setFragmentResult(FileDialogs.RESULT_CHANGED, result)
                 if (requireArguments().getBoolean(ARG_NOTIFY_VIEWER)) parentFragmentManager.setFragmentResult(FileDialogs.RESULT_VIEWER_CHANGED, result)
                 dismiss()
@@ -172,17 +185,35 @@ class MoreDialogFragment : BottomSheetDialogFragment() {
         val header = view.findViewById<View>(R.id.documentHeader)
         bindDocumentView(header, item, DocumentStore.isFavorite(requireContext(), item))
         header.findViewById<View>(R.id.moreButton).visibility = View.GONE
+        view.findViewById<TextView>(R.id.documentPath).apply {
+            text = item.uri.path?.takeIf(String::isNotBlank) ?: item.uri.toString()
+            setOnClickListener {
+                val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.file_path), text))
+                Toast.makeText(requireContext(), R.string.file_path_copied, Toast.LENGTH_SHORT).show()
+            }
+        }
         val favoriteButton = header.findViewById<ImageView>(R.id.favoriteButton)
         favoriteButton.setOnClickListener {
             val favorite = DocumentStore.toggleFavorite(requireContext(), item)
             favoriteButton.setImageResource(if (favorite) R.drawable.bookmark_on else R.drawable.bookmark_off)
-            parentFragmentManager.setFragmentResult(FileDialogs.RESULT_CHANGED, Bundle())
+            parentFragmentManager.setFragmentResult(
+                FileDialogs.RESULT_CHANGED,
+                Bundle().apply {
+                    putString(FileDialogs.RESULT_ACTION, FileDialogs.ACTION_FAVORITE)
+                    putString(FileDialogs.RESULT_URI, item.uri.toString())
+                    putBoolean(FileDialogs.RESULT_FAVORITE, favorite)
+                }
+            )
         }
         val showOpen = !fromViewer
         view.findViewById<View>(R.id.openDivider).visibility = if (showOpen) View.VISIBLE else View.GONE
         view.findViewById<View>(R.id.openAction).apply {
             visibility = if (showOpen) View.VISIBLE else View.GONE
-            if (visibility == View.VISIBLE) action(this, R.drawable.ic_open, getString(R.string.open_file)) { (requireActivity() as MainActivity).navigate(ViewerFragment.newInstance(item)); dismiss() }
+            if (visibility == View.VISIBLE) action(this, R.drawable.ic_open, getString(R.string.open_file)) {
+                (requireActivity() as MainActivity).openDocumentWithAd(item)
+                dismiss()
+            }
         }
         action(view.findViewById(R.id.renameAction), R.drawable.ic_rename, getString(R.string.rename)) { dismiss(); RenameDialogFragment.newInstance(item, fromViewer).show(parentFragmentManager, "rename") }
         action(view.findViewById(R.id.shareAction), R.drawable.ic_share, getString(R.string.share_file)) { FileDialogs.share(requireActivity(), item); dismiss() }

@@ -30,6 +30,7 @@ class DocumentAdapter(
     private val draggable: Boolean = false,
     private val onDragStart: (RecyclerView.ViewHolder) -> Unit = {},
     private val onOpen: (DocumentItem) -> Unit,
+    private val onPreview: ((DocumentItem) -> Unit)? = null,
     private val onFavorite: (DocumentItem) -> Unit = {},
     private val onMore: (DocumentItem) -> Unit = {}
 ) : ListAdapter<DocumentItem, DocumentAdapter.Holder>(Diff) {
@@ -55,7 +56,15 @@ class DocumentAdapter(
 
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = getItem(position)
-        bindDocumentView(holder.itemView, item, DocumentStore.isFavorite(holder.itemView.context, item), selectionMode, selectedUris.contains(item.uri.toString()), draggable)
+        bindDocumentView(
+            holder.itemView,
+            item,
+            DocumentStore.isFavorite(holder.itemView.context, item),
+            selectionMode,
+            selectedUris.contains(item.uri.toString()),
+            draggable,
+            onPreview != null
+        )
         holder.itemView.setOnClickListener { onOpen(item) }
         holder.itemView.findViewById<View>(R.id.favoriteButton).setOnClickListener { button ->
             onFavorite(item)
@@ -64,6 +73,7 @@ class DocumentAdapter(
             button.animate().scaleX(1f).scaleY(1f).setDuration(180).start()
         }
         holder.itemView.findViewById<View>(R.id.moreButton).setOnClickListener { onMore(item) }
+        holder.itemView.findViewById<View>(R.id.previewButton).setOnClickListener { onPreview?.invoke(item) }
         holder.itemView.findViewById<View>(R.id.dragHandle).setOnTouchListener { _, event ->
             if (draggable && event.actionMasked == MotionEvent.ACTION_DOWN) { onDragStart(holder); true } else false
         }
@@ -76,7 +86,7 @@ class DocumentAdapter(
     }
 }
 
-fun bindDocumentView(root: View, item: DocumentItem, favorite: Boolean, selectionMode: Boolean = false, selected: Boolean = false, draggable: Boolean = false) {
+fun bindDocumentView(root: View, item: DocumentItem, favorite: Boolean, selectionMode: Boolean = false, selected: Boolean = false, draggable: Boolean = false, showPreview: Boolean = false) {
     root.findViewById<ImageView>(R.id.documentIcon).setImageResource(documentIcon(item.type))
     root.findViewById<TextView>(R.id.documentName).text = item.name
     root.findViewById<TextView>(R.id.documentSubtitle).text = DocumentStore.subtitle(root.context, item)
@@ -85,6 +95,7 @@ fun bindDocumentView(root: View, item: DocumentItem, favorite: Boolean, selectio
         setImageResource(if (favorite) R.drawable.bookmark_on else R.drawable.bookmark_off)
     }
     root.findViewById<View>(R.id.moreButton).visibility = if (selectionMode) View.GONE else View.VISIBLE
+    root.findViewById<View>(R.id.previewButton).visibility = if (selectionMode && showPreview) View.VISIBLE else View.GONE
     root.findViewById<View>(R.id.dragHandle).visibility = if (draggable) View.VISIBLE else View.GONE
     root.findViewById<ImageView>(R.id.selectionIndicator).apply {
         visibility = if (selectionMode) View.VISIBLE else View.GONE

@@ -226,6 +226,11 @@ class HomeFragment : Fragment(R.layout.fragment_home), PageAdRefreshable {
         (childFragmentManager.findFragmentById(R.id.tabContainer) as? DocumentListFragment)?.refreshDocuments()
     }
 
+    fun applyFileChange(result: Bundle) {
+        (childFragmentManager.findFragmentById(R.id.tabContainer) as? DocumentListFragment)
+            ?.applyFileChange(result)
+    }
+
     private fun refreshBanner() {
         val root = view ?: return
         root.findViewById<ViewGroup>(R.id.homeBannerAd).post {

@@ -31,4 +31,5 @@
 <string name="permission_settings_title">파일 액세스 허용</string>
 <string name="permission_settings_message">Smart PDF의 시스템 권한 요청이 꺼져 있습니다. 파일 액세스를 허용하려면 앱 설정을 여세요.</string>
 <string name="permission_settings_action">설정 열기</string>
+    <string name="file_path">파일 경로</string><string name="file_path_copied">파일 경로가 복사됨</string><string name="preview_file">파일 미리보기</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">압축 파일 내용</string><string name="file_version">버전</string><string name="file_size">크기</string>
 </resources>

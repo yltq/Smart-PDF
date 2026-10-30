@@ -54,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     private var afterNewUserDestination = SplashFragment.DESTINATION_HOME
     private var hotStartRouting = false
     private var startupRouteVersion = 0
+    private var backHomeNavigationPending = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         if (savedInstanceState == null) requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -77,6 +78,12 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         prepareWindow()
         setContentView(R.layout.activity_main)
+        supportFragmentManager.setFragmentResultListener(FileDialogs.RESULT_CHANGED, this) { _, result ->
+            supportFragmentManager.fragments
+                .filterIsInstance<HomeFragment>()
+                .lastOrNull()
+                ?.applyFileChange(result)
+        }
         supportFragmentManager.registerFragmentLifecycleCallbacks(object : FragmentManager.FragmentLifecycleCallbacks() {
             override fun onFragmentResumed(fragmentManager: FragmentManager, fragment: Fragment) {
                 if (fragment is DialogFragment) return
@@ -96,9 +103,7 @@ class MainActivity : AppCompatActivity() {
         }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (supportFragmentManager.backStackEntryCount > 0) {
-                    if (supportFragmentManager.popBackStackImmediate()) refreshVisiblePageAds()
-                } else {
+                if (!back()) {
                     isEnabled = false
                     onBackPressedDispatcher.onBackPressed()
                 }
@@ -238,7 +243,10 @@ class MainActivity : AppCompatActivity() {
             FullScreenResumeTask.Action.OPEN_DOCUMENT -> {
                 FullScreenResumeTask.document(payload)?.let { navigate(ViewerFragment.newInstance(it)) }
             }
-            FullScreenResumeTask.Action.RETURN_HOME -> showRoot(HomeFragment.newInstance(0))
+            FullScreenResumeTask.Action.RETURN_HOME -> {
+                backHomeNavigationPending = false
+                showRoot(HomeFragment.newInstance(0))
+            }
             FullScreenResumeTask.Action.SHOW_RESULT -> {
                 val item = FullScreenResumeTask.document(payload) ?: return
                 navigate(ResultFragment.newInstance(item, payload.optString("result_action", "processed")))
@@ -339,7 +347,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun leaveUninstallFlow() {
-        showRoot(if (launchNewUserFlow) LanguageFragment.newInstance(true) else HomeFragment())
+        if (launchNewUserFlow) showRoot(LanguageFragment.newInstance(true)) else returnHomeWithAd()
     }
 
     fun openDocumentWithAd(item: DocumentItem) {
@@ -349,7 +357,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun returnHomeWithAd() {
-        SmartPdfAds.show(this, AdScenes.BACK_HOME, resumeTask = FullScreenResumeTask.returnHome()) {
+        showBackHomeAd {
             if (!isFinishing && !isDestroyed) showRoot(HomeFragment.newInstance(0))
         }
     }
@@ -418,8 +426,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun back(): Boolean {
+        if (supportFragmentManager.backStackEntryCount <= 0) return false
+        if (nextBackDestinationIsHome()) {
+            showBackHomeAd {
+                if (isFinishing || isDestroyed) return@showBackHomeAd
+                if (nextBackDestinationIsHome()) {
+                    if (supportFragmentManager.popBackStackImmediate()) refreshVisiblePageAds()
+                } else {
+                    showRoot(HomeFragment.newInstance(0))
+                }
+            }
+            return true
+        }
         val popped = supportFragmentManager.popBackStackImmediate()
         if (popped) refreshVisiblePageAds()
         return popped
+    }
+
+    private fun showBackHomeAd(onComplete: () -> Unit) {
+        if (backHomeNavigationPending) return
+        backHomeNavigationPending = true
+        SmartPdfAds.show(this, AdScenes.BACK_HOME, resumeTask = FullScreenResumeTask.returnHome()) {
+            backHomeNavigationPending = false
+            onComplete()
+        }
+    }
+
+    private fun nextBackDestinationIsHome(): Boolean {
+        if (supportFragmentManager.backStackEntryCount != 1) return false
+        val current = supportFragmentManager.findFragmentById(R.id.main)
+        return supportFragmentManager.fragments.any { fragment ->
+            fragment is HomeFragment && fragment.isAdded && fragment !== current
+        }
     }
 }

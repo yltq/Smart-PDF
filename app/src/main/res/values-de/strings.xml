@@ -31,4 +31,5 @@
 <string name="permission_settings_title">Dateizugriff erlauben</string>
 <string name="permission_settings_message">Systemberechtigungsanfragen sind für Smart PDF deaktiviert. Öffne die App-Einstellungen, um den Dateizugriff zu erlauben.</string>
 <string name="permission_settings_action">Einstellungen öffnen</string>
+    <string name="file_path">Dateipfad</string><string name="file_path_copied">Dateipfad kopiert</string><string name="preview_file">Datei ansehen</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">Archivinhalt</string><string name="file_version">Version</string><string name="file_size">Größe</string>
 </resources>

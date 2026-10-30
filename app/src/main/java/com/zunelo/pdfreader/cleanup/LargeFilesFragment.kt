@@ -38,14 +38,22 @@ enum class SizeFilter(val minimumBytes: Long, @param:StringRes val label: Int) {
     FIVE_HUNDRED_MB(500L * 1024L * 1024L, R.string.large_file_size_500)
 }
 
-enum class TypeFilter(@param:StringRes val label: Int, val category: LargeFileCategory?) {
+enum class TypeFilter(@param:StringRes val label: Int, val category: LargeFileCategory?, val extension: String? = null) {
     ALL(R.string.large_file_type_all, null),
     DOCUMENTS(R.string.large_file_type_documents, LargeFileCategory.DOCUMENT),
     IMAGES(R.string.large_file_type_images, LargeFileCategory.IMAGE),
     VIDEOS(R.string.large_file_type_videos, LargeFileCategory.VIDEO),
     AUDIO(R.string.large_file_type_audio, LargeFileCategory.AUDIO),
+    ZIP(R.string.large_file_type_zip, LargeFileCategory.ARCHIVE, "zip"),
+    APK(R.string.large_file_type_apk, LargeFileCategory.ARCHIVE, "apk"),
     ARCHIVES(R.string.large_file_type_archives, LargeFileCategory.ARCHIVE),
-    OTHER(R.string.large_file_type_other, LargeFileCategory.OTHER)
+    OTHER(R.string.large_file_type_other, LargeFileCategory.OTHER);
+
+    fun matches(item: LargeFileItem): Boolean = when {
+        category == null -> true
+        extension != null -> item.name.substringAfterLast('.', "").equals(extension, ignoreCase = true)
+        else -> item.category == category
+    }
 }
 
 enum class DateFilter(@param:StringRes val label: Int, val ageMillis: Long) {
@@ -82,7 +90,10 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         view.findViewById<TextView>(R.id.toolbarTitle).setText(R.string.large_files)
         view.findViewById<View>(R.id.backButton).setOnClickListener { (requireActivity() as MainActivity).back() }
         view.findViewById<View>(R.id.toolbarAction).visibility = View.INVISIBLE
-        adapter = LargeFileAdapter(::toggleSelection)
+        adapter = LargeFileAdapter(
+            onOpen = ::openFile,
+            onSelectionChanged = ::toggleSelection
+        )
         view.findViewById<RecyclerView>(R.id.largeFileList).apply {
             layoutManager = LinearLayoutManager(requireContext())
             adapter = this@LargeFilesFragment.adapter
@@ -165,6 +176,11 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
 
     override fun onResume() {
         super.onResume()
+        accessFlow.onResume()
+        if (!DocumentStore.canModifyStorage(requireContext())) {
+            renderAccessState()
+            return
+        }
         presentCompletedScanIfPossible()
     }
 
@@ -173,7 +189,7 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         val oldestAllowed = if (dateFilter.ageMillis == 0L) Long.MAX_VALUE else System.currentTimeMillis() - dateFilter.ageMillis
         visibleFiles = allFiles.asSequence()
             .filter { it.size >= sizeFilter.minimumBytes }
-            .filter { typeFilter.category == null || it.category == typeFilter.category }
+            .filter(typeFilter::matches)
             .filter { dateFilter.ageMillis == 0L || (it.modified in 1..oldestAllowed) }
             .sortedWith(compareByDescending<LargeFileItem> { it.size }.thenBy { it.path })
             .toList()
@@ -205,6 +221,17 @@ class LargeFilesFragment : Fragment(R.layout.fragment_large_files) {
         if (!selectedPaths.remove(item.path)) selectedPaths.add(item.path)
         adapter.selectedPaths = selectedPaths.toSet()
         updateSelectionUi()
+    }
+
+    private fun openFile(item: LargeFileItem) {
+        val document = com.zunelo.pdfreader.data.DocumentItem(
+            uri = android.net.Uri.fromFile(java.io.File(item.path)),
+            name = item.name,
+            size = item.size,
+            modified = item.modified,
+            mime = DocumentStore.inferredMime(item.name)
+        )
+        (requireActivity() as MainActivity).openDocumentWithAd(document)
     }
 
     private fun toggleSelectAll() {

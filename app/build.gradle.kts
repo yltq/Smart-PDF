@@ -64,8 +64,6 @@ android {
             buildConfigField("String", "CLOAK_ENDPOINT", configString("DEBUG_CLOAK_ENDPOINT"))
             buildConfigField("String", "PRIVACY_URL", configString("DEBUG_PRIVACY_URL"))
             manifestPlaceholders["admobAppId"] = configValue("DEBUG_ADMOB_APP_ID")
-            manifestPlaceholders["facebookAppId"] = configValue("DEBUG_FACEBOOK_APP_ID")
-            manifestPlaceholders["facebookClientToken"] = configValue("DEBUG_FACEBOOK_CLIENT_TOKEN")
         }
         release {
             isMinifyEnabled = true
@@ -79,8 +77,6 @@ android {
             buildConfigField("String", "CLOAK_ENDPOINT", configString("RELEASE_CLOAK_ENDPOINT"))
             buildConfigField("String", "PRIVACY_URL", configString("RELEASE_PRIVACY_URL"))
             manifestPlaceholders["admobAppId"] = configValue("RELEASE_ADMOB_APP_ID")
-            manifestPlaceholders["facebookAppId"] = configValue("RELEASE_FACEBOOK_APP_ID")
-            manifestPlaceholders["facebookClientToken"] = configValue("RELEASE_FACEBOOK_CLIENT_TOKEN")
         }
     }
 

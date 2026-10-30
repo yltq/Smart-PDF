@@ -40,6 +40,7 @@ import com.zunelo.pdfreader.ads.config.AdUnitConfig
 import com.zunelo.pdfreader.guard.TestAdState
 import com.zunelo.pdfreader.telemetry.AdValueDispatcher
 import com.zunelo.pdfreader.telemetry.SmartPdfSignalHub
+import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 
 data class AdScene(val slotKey: String, val adPosId: String)
@@ -105,10 +106,12 @@ object SmartPdfAds {
     private data class CachedAd(val value: Any, val unit: AdUnitConfig, val loadedAtMillis: Long)
 
     private data class FullScreenSession(
+        val host: WeakReference<Activity>,
         val scene: AdScene,
         val resumeTask: FullScreenResumeTask?,
         val onComplete: () -> Unit,
         var suppressContinuation: Boolean = false,
+        var providerCompleted: Boolean = false,
         var completed: Boolean = false
     )
 
@@ -121,9 +124,11 @@ object SmartPdfAds {
     private val nativeExposures = WeakHashMap<NativeAd, AdExposure>()
     private val nativeBindTokens = WeakHashMap<ViewGroup, Any>()
     private val bannerBindTokens = WeakHashMap<ViewGroup, Any>()
+    private val resumedHosts = WeakHashMap<Activity, Unit>()
     private var application: Application? = null
     private var fullScreenShowing = false
     private var activeFullScreenSession: FullScreenSession? = null
+    private var pendingFullScreenContinuation: FullScreenSession? = null
     private var lastFullscreenClosedAt = 0L
     fun initialize(application: Application) {
         this.application = application
@@ -173,8 +178,12 @@ object SmartPdfAds {
 
     fun prepareForStartupRestart(cancelContinuation: Boolean) {
         check(Looper.myLooper() == Looper.getMainLooper())
-        val session = activeFullScreenSession ?: return
+        val session = activeFullScreenSession ?: pendingFullScreenContinuation ?: return
         session.suppressContinuation = true
+        if (pendingFullScreenContinuation === session) {
+            pendingFullScreenContinuation = null
+            session.completed = true
+        }
         val app = application ?: return
         if (cancelContinuation) {
             FullScreenResumeStore.clear(app)
@@ -186,6 +195,19 @@ object SmartPdfAds {
 
     fun onProviderAdActivityDestroyed() = onMain {
         activeFullScreenSession?.let(::completeFullScreenSession)
+    }
+
+    fun onHostActivityResumed(activity: Activity) = onMain {
+        resumedHosts[activity] = Unit
+        val pending = pendingFullScreenContinuation ?: return@onMain
+        if (pending.host.get() === activity) {
+            pendingFullScreenContinuation = null
+            continueFullScreenSession(pending)
+        }
+    }
+
+    fun onHostActivityPaused(activity: Activity) = onMain {
+        resumedHosts.remove(activity)
     }
 
     fun resetFullScreenInterval() = onMain {
@@ -253,9 +275,25 @@ object SmartPdfAds {
             return@onMain
         }
         if (!canDisplay(scene)) {
-            release(container)
-            if (canRequest(scene)) loadCached(scene, setOf(FORMAT_NATIVE))
-            onResult(false)
+            clearNativeContent(container)
+            if (!canRequest(scene)) {
+                onResult(false)
+                return@onMain
+            }
+            loadCached(scene, setOf(FORMAT_NATIVE)) { loaded ->
+                if (!loaded) {
+                    onResult(false)
+                    return@loadCached
+                }
+                renderCachedNative(
+                    activity = activity,
+                    scene = scene,
+                    container = container,
+                    token = token,
+                    reportChance = true,
+                    onResult = onResult
+                )
+            }
             return@onMain
         }
         reportChanceIfEligible(scene, scene.adPosId)
@@ -268,28 +306,53 @@ object SmartPdfAds {
             return@onMain
         }
         loadCached(scene, setOf(FORMAT_NATIVE)) { loaded ->
-            if (
-                !loaded ||
-                activity.isFinishing ||
-                activity.isDestroyed ||
-                nativeBindTokens[container] !== token
-            ) {
+            if (!loaded) {
                 onResult(false)
                 return@loadCached
             }
-            if (!canDisplay(scene)) {
-                release(container)
-                onResult(false)
-                return@loadCached
-            }
-            val cached = takeValidCache(scene.slotKey, FORMAT_NATIVE)
-            val ad = cached?.value as? NativeAd
-            if (ad == null || cached == null) onResult(false) else {
-                renderNative(container, ad, scene, cached.unit)
-                loadCached(scene, setOf(FORMAT_NATIVE))
-                onResult(true)
-            }
+            renderCachedNative(
+                activity = activity,
+                scene = scene,
+                container = container,
+                token = token,
+                reportChance = false,
+                onResult = onResult
+            )
         }
+    }
+
+    private fun renderCachedNative(
+        activity: Activity,
+        scene: AdScene,
+        container: ViewGroup,
+        token: Any,
+        reportChance: Boolean,
+        onResult: (Boolean) -> Unit
+    ) {
+        if (
+            !AdLimitPolicy.canServeAds() ||
+            activity.isFinishing ||
+            activity.isDestroyed ||
+            nativeBindTokens[container] !== token
+        ) {
+            onResult(false)
+            return
+        }
+        if (!canDisplay(scene)) {
+            clearNativeContent(container)
+            onResult(false)
+            return
+        }
+        val cached = takeValidCache(scene.slotKey, FORMAT_NATIVE)
+        val nativeAd = cached?.value as? NativeAd
+        if (cached == null || nativeAd == null) {
+            onResult(false)
+            return
+        }
+        if (reportChance) reportChanceIfEligible(scene, scene.adPosId)
+        renderNative(container, nativeAd, scene, cached.unit)
+        loadCached(scene, setOf(FORMAT_NATIVE))
+        onResult(true)
     }
 
     fun bindBanner(
@@ -321,8 +384,14 @@ object SmartPdfAds {
     fun release(container: ViewGroup) = onMain {
         nativeBindTokens.remove(container)
         bannerBindTokens.remove(container)
-        activeNativeAds.remove(container)?.let { nativeExposures.remove(it); it.destroy() }
+        clearNativeContent(container)
         activeBanners.remove(container)?.destroy()
+        container.removeAllViews()
+        container.minimumHeight = 0
+    }
+
+    private fun clearNativeContent(container: ViewGroup) {
+        activeNativeAds.remove(container)?.let { nativeExposures.remove(it); it.destroy() }
         container.removeAllViews()
         container.minimumHeight = 0
     }
@@ -472,7 +541,7 @@ object SmartPdfAds {
         bindPaidEvent(ad, scene, unit)
         load(scene, adSource)
         val exposure = AdExposure(scene, adSource)
-        val session = FullScreenSession(scene, resumeTask, onComplete)
+        val session = FullScreenSession(WeakReference(activity), scene, resumeTask, onComplete)
         activeFullScreenSession = session
         var adShown = false
         fun complete() {
@@ -511,10 +580,25 @@ object SmartPdfAds {
     }
 
     private fun completeFullScreenSession(session: FullScreenSession) {
-        if (session.completed) return
-        session.completed = true
+        if (session.providerCompleted) return
+        session.providerCompleted = true
         if (activeFullScreenSession === session) activeFullScreenSession = null
         fullScreenShowing = false
+        if (session.suppressContinuation) {
+            session.completed = true
+            return
+        }
+        val host = session.host.get()
+        if (host != null && resumedHosts.containsKey(host) && !host.isFinishing && !host.isDestroyed) {
+            continueFullScreenSession(session)
+        } else {
+            pendingFullScreenContinuation = session
+        }
+    }
+
+    private fun continueFullScreenSession(session: FullScreenSession) {
+        if (session.completed) return
+        session.completed = true
         if (!session.suppressContinuation) session.onComplete()
     }
 

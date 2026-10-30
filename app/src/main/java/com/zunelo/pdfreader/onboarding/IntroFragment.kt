@@ -30,7 +30,7 @@ class IntroFragment : Fragment(R.layout.fragment_intro), PageAdRefreshable {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         SmartPdfSignalHub.recordCustomSignal("page_introduce_show")
-        pageAdRefreshEnabled = savedInstanceState == null
+        pageAdRefreshEnabled = false
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner) {}
         val pager = view.findViewById<ViewPager2>(R.id.introPager)
         val action = view.findViewById<TextView>(R.id.introAction)
@@ -84,6 +84,11 @@ class IntroFragment : Fragment(R.layout.fragment_intro), PageAdRefreshable {
         action.setOnClickListener { openHome() }
         view.findViewById<View>(R.id.skipIntro).setOnClickListener { openHome() }
         renderPosition(0)
+        SmartPdfAds.bindNative(
+            requireActivity(),
+            AdScenes.NEW_INTRO_NATIVE,
+            view.findViewById(R.id.introNativeAd)
+        )
         view.post { pageAdRefreshEnabled = true }
     }
 

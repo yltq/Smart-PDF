@@ -6,4 +6,10 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@color/surface</item>
     </style>
+    <style name="Theme.ZuneloPDF.Launcher" parent="Theme.ZuneloPDF">
+        <item name="android:windowBackground">@drawable/bg_launcher_window</item>
+        <item name="android:windowDisablePreview">false</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>

@@ -9,6 +9,7 @@ import com.android.installreferrer.api.InstallReferrerStateListener
 import com.android.installreferrer.api.ReferrerDetails
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.zunelo.pdfreader.BuildConfig
+import com.zunelo.pdfreader.common.AppLog
 import com.zunelo.pdfreader.config.AppRuntimeConfig
 import com.zunelo.pdfreader.telemetry.network.OkHttpManager
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +40,6 @@ object SmartPdfSignalHub {
     private const val KEY_BACK_REFERRER_TOKEN = "back_referrer_token"
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val referrerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val booted = AtomicBoolean(false)
     private val installWorkInFlight = AtomicBoolean(false)
     private var referrerFailedAttempts = 0
@@ -53,14 +53,14 @@ object SmartPdfSignalHub {
     val stableId: String by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
         preferences.getString(KEY_STABLE_ID, null)
             ?: UUID.randomUUID().toString().also {
-                preferences.edit().putString(KEY_STABLE_ID, it).commit()
+                preferences.edit().putString(KEY_STABLE_ID, it).apply()
             }
     }
 
     fun boot(application: Application) {
         if (!booted.compareAndSet(false, true)) return
         this.application = application
-        reportInstallIfNeeded()
+        scope.launch { reportInstallIfNeeded() }
     }
 
     fun reportSession() {
@@ -87,6 +87,7 @@ object SmartPdfSignalHub {
         attributes.forEach { (key, value) ->
             if (key.isNotBlank()) payload.put("petulant&$key", JSONObject.wrap(value))
         }
+        AppLog.debug { payload.toString() }
         upload(payload)
     }
 
@@ -121,7 +122,7 @@ object SmartPdfSignalHub {
             .filter(String::isNotBlank)
             .joinToString("_")
         return JSONObject()
-            .put("film", application.packageName)
+            .put("film", "com.file.readx.smart.rkgiv")
             .put("monster", "owens")
             .put("monkey", BuildConfig.VERSION_NAME)
             .put("echoes", stableId)
@@ -137,7 +138,7 @@ object SmartPdfSignalHub {
     }
 
     internal fun cloakPayload(): JSONObject = JSONObject()
-        .put("film", application.packageName)
+        .put("film", "com.file.readx.smart.rkgiv")
         .put("monster", "owens")
         .put("monkey", BuildConfig.VERSION_NAME)
         .put("echoes", stableId)
@@ -211,7 +212,7 @@ object SmartPdfSignalHub {
             BACKGROUND_REFERRER_RETRY_MILLIS
         }
         referrerRetryJob?.cancel()
-        referrerRetryJob = referrerScope.launch {
+        referrerRetryJob = scope.launch {
             delay(retryDelay)
             reportInstallIfNeeded()
         }

@@ -12,7 +12,7 @@ object NewUserFlow {
         val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
         if (preferences.getBoolean(KEY_CONSUMED, false)) return false
         val existingUser = preferences.getBoolean(LEGACY_LANGUAGE_DONE, false)
-        preferences.edit().putBoolean(KEY_CONSUMED, true).commit()
+        preferences.edit().putBoolean(KEY_CONSUMED, true).apply()
         return !existingUser
     }
 }

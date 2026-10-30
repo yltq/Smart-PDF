@@ -40,6 +40,7 @@
         <activity
             android:name=".application.MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:launchMode="singleTask" />
         <activity
             android:name=".application.LauncherActivity"
@@ -47,8 +48,9 @@
             android:exported="true"
             android:launchMode="singleTop"
             android:noHistory="true"
+            android:screenOrientation="portrait"
             android:taskAffinity="${applicationId}.launcher"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            android:theme="@style/Theme.ZuneloPDF.Launcher">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -11,11 +11,13 @@
     </LinearLayout>
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
         <androidx.recyclerview.widget.RecyclerView android:id="@+id/viewerPages" android:layout_width="match_parent" android:layout_height="match_parent" android:clipToPadding="false" android:padding="8dp" />
+        <ImageView android:id="@+id/imagePreview" android:layout_width="match_parent" android:layout_height="match_parent" android:adjustViewBounds="true" android:contentDescription="@string/preview_file" android:padding="12dp" android:scaleType="fitCenter" android:visibility="gone" />
+        <androidx.media3.ui.PlayerView android:id="@+id/mediaPreview" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
         <WebView android:id="@+id/officePreview" android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
         <LinearLayout android:id="@+id/viewerFallback" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:orientation="vertical" android:padding="36dp" android:visibility="gone">
             <ImageView android:id="@+id/fallbackIcon" android:layout_width="86dp" android:layout_height="110dp" android:contentDescription="@null" />
             <TextView android:id="@+id/fallbackName" android:layout_width="match_parent" android:layout_height="54dp" android:gravity="center" android:textColor="@color/ink" android:textSize="20sp" android:textStyle="bold" />
-            <TextView android:id="@+id/fallbackMessage" android:layout_width="match_parent" android:layout_height="64dp" android:gravity="center" android:textColor="@color/ink_secondary" android:textSize="14sp" />
+            <TextView android:id="@+id/fallbackMessage" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="18dp" android:gravity="center" android:maxLines="6" android:textColor="@color/ink_secondary" android:textSize="14sp" />
             <TextView android:id="@+id/openExternal" android:layout_width="230dp" android:layout_height="54dp" android:background="@drawable/bg_primary_button" android:gravity="center" android:text="@string/open_in_another_app" android:textColor="@color/white" android:textStyle="bold" />
         </LinearLayout>
         <com.zunelo.pdfreader.common.LoadingIndicatorView android:id="@+id/viewerLoading" android:layout_width="54dp" android:layout_height="54dp" android:layout_gravity="center" />

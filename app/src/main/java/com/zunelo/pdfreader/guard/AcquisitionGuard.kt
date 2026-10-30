@@ -56,13 +56,16 @@ object AcquisitionGuard {
 
     fun isTestAd(context: Context): Boolean = TestAdState.isTestAd(context)
 
-    fun isPaidAcquisitionUser(context: Context): Boolean =
-        !isAutomatedEnvironment(context) &&
-            !hasFakeLocationApp(context) &&
-            !isCloakBlocked() &&
-            !isReferrerBlocked() &&
-            !isTestAd(context) &&
-            !isGoogleOrEmulator()
+    fun isPaidAcquisitionUser(context: Context): Boolean {
+        val result =  !isAutomatedEnvironment(context) &&
+                !hasFakeLocationApp(context) &&
+                !isCloakBlocked() &&
+                !isReferrerBlocked() &&
+                !isTestAd(context) &&
+                !isGoogleOrEmulator()
+        return result
+    }
+
 
     private fun isGoogleOrEmulator(): Boolean {
         val genericIdentity = Build.BRAND.startsWith("generic") &&

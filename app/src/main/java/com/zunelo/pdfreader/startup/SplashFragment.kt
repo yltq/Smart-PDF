@@ -196,6 +196,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
 
     private fun routeIfPossible() {
         if (!exitFinished || !isResumed || routed || !isAdded) return
+        SmartPdfAds.preloadAll(launchSource())
         routed = true
         val showNewUserFlow = arguments?.getBoolean(ARG_NEW_USER_FLOW) == true
         val destination = arguments?.getString(ARG_DESTINATION) ?: DESTINATION_HOME

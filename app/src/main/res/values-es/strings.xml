@@ -31,4 +31,5 @@
 <string name="permission_settings_title">Permitir acceso a archivos</string>
 <string name="permission_settings_message">Las solicitudes de permisos del sistema están desactivadas para Smart PDF. Abre los ajustes de la aplicación para permitir el acceso a los archivos.</string>
 <string name="permission_settings_action">Abrir ajustes</string>
+    <string name="file_path">Ruta del archivo</string><string name="file_path_copied">Ruta copiada</string><string name="preview_file">Vista previa</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">Contenido del archivo</string><string name="file_version">Versión</string><string name="file_size">Tamaño</string>
 </resources>

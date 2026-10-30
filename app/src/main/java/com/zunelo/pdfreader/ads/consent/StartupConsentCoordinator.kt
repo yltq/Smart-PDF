@@ -2,8 +2,10 @@ package com.zunelo.pdfreader.ads.consent
 
 import android.app.Activity
 import android.content.Context
+import com.google.android.ump.ConsentDebugSettings
 import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
+import com.zunelo.pdfreader.BuildConfig
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -37,7 +39,17 @@ object StartupConsentCoordinator {
             if (completed.compareAndSet(false, true)) onComplete(success)
         }
         val consentInformation = UserMessagingPlatform.getConsentInformation(activity)
-        val requestParameters = ConsentRequestParameters.Builder().build()
+        val builder = ConsentRequestParameters.Builder()
+        if (BuildConfig.DEBUG) {
+            val debugSettings = ConsentDebugSettings.Builder(activity)
+                .setDebugGeography(
+                    ConsentDebugSettings.DebugGeography.DEBUG_GEOGRAPHY_EEA
+                )
+                .addTestDeviceHashedId("E3EE8BB134194CF5E76924F0F6A1EC2D")
+                .build()
+            builder.setConsentDebugSettings(debugSettings)
+        }
+        val requestParameters = builder.build()
         consentInformation.requestConsentInfoUpdate(
             activity,
             requestParameters,

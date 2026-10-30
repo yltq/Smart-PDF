@@ -31,4 +31,10 @@
 <string name="permission_settings_title">允許存取檔案</string>
 <string name="permission_settings_message">系統已不再顯示 Smart PDF 的權限要求。請前往應用程式設定允許檔案存取。</string>
 <string name="permission_settings_action">前往設定</string>
+    <string name="file_path">檔案路徑</string>
+    <string name="file_path_copied">已複製檔案路徑</string>
+    <string name="preview_file">預覽檔案</string>
+    <string name="large_file_type_zip">ZIP 壓縮檔</string>
+    <string name="large_file_type_apk">APK 安裝檔</string>
+    <string name="archive_contents">壓縮檔內容</string><string name="file_version">版本</string><string name="file_size">大小</string>
 </resources>

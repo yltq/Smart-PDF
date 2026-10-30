@@ -31,4 +31,5 @@
 <string name="permission_settings_title">Izinkan akses file</string>
 <string name="permission_settings_message">Permintaan izin sistem dinonaktifkan untuk Smart PDF. Buka setelan aplikasi untuk mengizinkan akses file.</string>
 <string name="permission_settings_action">Buka setelan</string>
+    <string name="file_path">Lokasi file</string><string name="file_path_copied">Lokasi file disalin</string><string name="preview_file">Pratinjau file</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">Isi arsip</string><string name="file_version">Versi</string><string name="file_size">Ukuran</string>
 </resources>

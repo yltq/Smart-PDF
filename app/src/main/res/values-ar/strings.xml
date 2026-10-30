@@ -157,4 +157,5 @@
 <string name="permission_settings_title">السماح بالوصول إلى الملفات</string>
 <string name="permission_settings_message">تم إيقاف مطالبات أذونات النظام لتطبيق Smart PDF. افتح إعدادات التطبيق للسماح بالوصول إلى الملفات.</string>
 <string name="permission_settings_action">فتح الإعدادات</string>
+    <string name="file_path">مسار الملف</string><string name="file_path_copied">تم نسخ مسار الملف</string><string name="preview_file">معاينة الملف</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">محتويات الأرشيف</string><string name="file_version">الإصدار</string><string name="file_size">الحجم</string>
 </resources>

@@ -3,7 +3,11 @@
     android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/app_canvas">
     <include android:id="@+id/toolbar" layout="@layout/view_toolbar" />
     <TextView android:id="@+id/toolHint" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="20dp" android:layout_marginTop="12dp" android:textColor="@color/ink_secondary" android:textSize="13sp" android:visibility="gone" />
-    <androidx.recyclerview.widget.RecyclerView android:id="@+id/pdfList" android:layout_width="match_parent" android:layout_height="0dp" android:layout_marginStart="14dp" android:layout_marginTop="10dp" android:layout_marginEnd="14dp" android:layout_weight="1" android:background="@drawable/bg_panel" android:clipToPadding="false" android:paddingHorizontal="6dp" android:paddingVertical="4dp" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_marginStart="14dp" android:layout_marginTop="10dp" android:layout_marginEnd="14dp" android:layout_weight="1">
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/pdfList" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_panel" android:clipToPadding="false" android:paddingHorizontal="6dp" android:paddingVertical="4dp" />
+        <include android:id="@+id/toolEmptyState" layout="@layout/view_empty_state" android:visibility="gone" />
+        <ProgressBar android:id="@+id/toolLoading" android:layout_width="48dp" android:layout_height="48dp" android:layout_gravity="center" android:indeterminateTint="@color/brand_red" android:visibility="gone" />
+    </FrameLayout>
     <FrameLayout android:id="@+id/toolNativeAd" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:layout_marginTop="10dp" android:layout_marginEnd="14dp" />
     <TextView android:id="@+id/toolAction" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginHorizontal="20dp" android:layout_marginVertical="18dp" android:background="@drawable/bg_primary_button" android:enabled="false" android:gravity="center" android:stateListAnimator="@animator/press_scale" android:textColor="@color/white" android:textSize="16sp" android:textStyle="bold" />
 </LinearLayout>

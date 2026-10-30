@@ -8,6 +8,7 @@
     </LinearLayout>
     <ImageView android:id="@+id/selectionIndicator" android:layout_width="48dp" android:layout_height="58dp" android:contentDescription="@string/select_document" android:padding="12dp" android:scaleType="centerInside" android:visibility="gone" />
     <ImageView android:id="@+id/dragHandle" android:layout_width="40dp" android:layout_height="58dp" android:contentDescription="@string/reorder_document" android:padding="10dp" android:src="@drawable/ic_drag_handle" android:visibility="gone" />
+    <ImageView android:id="@+id/previewButton" android:layout_width="42dp" android:layout_height="58dp" android:contentDescription="@string/preview_file" android:padding="11dp" android:src="@drawable/ic_open" android:visibility="gone" />
     <ImageView android:id="@+id/favoriteButton" android:layout_width="44dp" android:layout_height="58dp" android:contentDescription="@string/collection" android:padding="10dp" android:scaleType="centerInside" />
     <TextView android:id="@+id/moreButton" android:layout_width="40dp" android:layout_height="58dp" android:contentDescription="@string/more_options" android:gravity="center" android:text="⋮" android:textColor="@color/ink" android:textSize="26sp" />
 </LinearLayout>

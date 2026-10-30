@@ -25,8 +25,10 @@ class SmartPdfApplication : Application() {
         CloakRepository.initialize(this)
         SmartPdfAds.initialize(this)
         AppForegroundCoordinator.initialize(this)
-        runCatching {
-            MobileAds.initialize(this@SmartPdfApplication) {}
+        applicationScope.launch {
+            runCatching {
+                MobileAds.initialize(this@SmartPdfApplication) {}
+            }
         }
         applicationScope.launch {
             runCatching {

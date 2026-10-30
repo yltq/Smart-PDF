@@ -157,4 +157,5 @@
 <string name="permission_settings_title">Dosya erişimine izin ver</string>
 <string name="permission_settings_message">Smart PDF için sistem izin istemleri kapalı. Dosya erişimine izin vermek için uygulama ayarlarını açın.</string>
 <string name="permission_settings_action">Ayarları aç</string>
+    <string name="file_path">Dosya yolu</string><string name="file_path_copied">Dosya yolu kopyalandı</string><string name="preview_file">Dosyayı önizle</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">Arşiv içeriği</string><string name="file_version">Sürüm</string><string name="file_size">Boyut</string>
 </resources>

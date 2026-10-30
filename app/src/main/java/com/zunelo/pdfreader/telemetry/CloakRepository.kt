@@ -23,7 +23,7 @@ object CloakRepository {
 
     fun initialize(application: Application) {
         this.application = application
-        fetchIfNeeded()
+        scope.launch { fetchIfNeeded() }
     }
 
     fun cachedResult(): String? = if (::application.isInitialized) {

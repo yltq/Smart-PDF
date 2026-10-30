@@ -52,6 +52,7 @@ data class DocumentItem(
 object DocumentStore {
     private const val PREFS = "pdf_reader_store"
     private const val KEY_FAVORITES = "favorites"
+    private const val KEY_FAVORITE_TIMES = "favorite_times"
     private const val KEY_RECENTS = "recents"
 
     fun hasAccess(context: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -90,11 +91,17 @@ object DocumentStore {
     fun toggleFavorite(context: Context, item: DocumentItem): Boolean {
         val prefs = context.getSharedPreferences(PREFS, 0)
         val values = prefs.getStringSet(KEY_FAVORITES, emptySet())?.toMutableSet() ?: mutableSetOf()
+        val times = prefs.getStringSet(KEY_FAVORITE_TIMES, emptySet())?.toMutableSet() ?: mutableSetOf()
+        times.removeAll { it.substringAfter('|') == item.uri.toString() }
         val added = if (values.remove(item.uri.toString())) false else {
             values.add(item.uri.toString())
+            times += "${System.currentTimeMillis()}|${item.uri}"
             true
         }
-        prefs.edit().putStringSet(KEY_FAVORITES, values).apply()
+        prefs.edit()
+            .putStringSet(KEY_FAVORITES, values)
+            .putStringSet(KEY_FAVORITE_TIMES, times)
+            .apply()
         return added
     }
 
@@ -109,8 +116,21 @@ object DocumentStore {
     fun recentUris(context: Context): List<String> = context.getSharedPreferences(PREFS, 0)
         .getStringSet(KEY_RECENTS, emptySet()).orEmpty().sortedDescending().map { it.substringAfter('|') }
 
-    fun favoriteUris(context: Context): Set<String> = context.getSharedPreferences(PREFS, 0)
-        .getStringSet(KEY_FAVORITES, emptySet()).orEmpty()
+    fun favoriteUris(context: Context): List<String> {
+        val prefs = context.getSharedPreferences(PREFS, 0)
+        val favorites = prefs.getStringSet(KEY_FAVORITES, emptySet()).orEmpty()
+        val timed = prefs.getStringSet(KEY_FAVORITE_TIMES, emptySet()).orEmpty()
+            .mapNotNull { entry ->
+                val separator = entry.indexOf('|')
+                if (separator <= 0) null else entry.substring(0, separator).toLongOrNull()
+                    ?.let { timestamp -> timestamp to entry.substring(separator + 1) }
+            }
+            .filter { it.second in favorites }
+            .sortedByDescending { it.first }
+            .map { it.second }
+        val timedUris = timed.toHashSet()
+        return timed + favorites.filterNot(timedUris::contains).sorted()
+    }
 
     fun renameItem(context: Context, item: DocumentItem, newName: String): DocumentItem? = runCatching {
         if (item.uri.scheme == "file") {
@@ -142,17 +162,30 @@ object DocumentStore {
         val prefs = context.getSharedPreferences(PREFS, 0)
         val favorites = prefs.getStringSet(KEY_FAVORITES, emptySet()).orEmpty().toMutableSet()
         if (favorites.remove(oldUri)) favorites += newUri
+        val favoriteTimes = prefs.getStringSet(KEY_FAVORITE_TIMES, emptySet()).orEmpty().mapTo(mutableSetOf()) {
+            if (it.substringAfter('|') == oldUri) "${it.substringBefore('|')}|$newUri" else it
+        }
         val recents = prefs.getStringSet(KEY_RECENTS, emptySet()).orEmpty().mapTo(mutableSetOf()) {
             if (it.substringAfter('|') == oldUri) "${it.substringBefore('|')}|$newUri" else it
         }
-        prefs.edit().putStringSet(KEY_FAVORITES, favorites).putStringSet(KEY_RECENTS, recents).apply()
+        prefs.edit()
+            .putStringSet(KEY_FAVORITES, favorites)
+            .putStringSet(KEY_FAVORITE_TIMES, favoriteTimes)
+            .putStringSet(KEY_RECENTS, recents)
+            .apply()
     }
 
     fun forgetUri(context: Context, uri: String) {
         val prefs = context.getSharedPreferences(PREFS, 0)
         val favorites = prefs.getStringSet(KEY_FAVORITES, emptySet()).orEmpty().filterTo(mutableSetOf()) { it != uri }
+        val favoriteTimes = prefs.getStringSet(KEY_FAVORITE_TIMES, emptySet()).orEmpty()
+            .filterTo(mutableSetOf()) { it.substringAfter('|') != uri }
         val recents = prefs.getStringSet(KEY_RECENTS, emptySet()).orEmpty().filterTo(mutableSetOf()) { it.substringAfter('|') != uri }
-        prefs.edit().putStringSet(KEY_FAVORITES, favorites).putStringSet(KEY_RECENTS, recents).apply()
+        prefs.edit()
+            .putStringSet(KEY_FAVORITES, favorites)
+            .putStringSet(KEY_FAVORITE_TIMES, favoriteTimes)
+            .putStringSet(KEY_RECENTS, recents)
+            .apply()
     }
 
     fun cacheFile(context: Context, item: DocumentItem): File {

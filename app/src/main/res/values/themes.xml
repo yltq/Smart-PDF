@@ -11,6 +11,12 @@
         <item name="android:windowActionModeOverlay">true</item>
     </style>
     <style name="Theme.ZuneloPDF" parent="Base.Theme.ZuneloPDF" />
+    <style name="Theme.ZuneloPDF.Launcher" parent="Theme.ZuneloPDF">
+        <item name="android:windowBackground">@drawable/bg_launcher_window</item>
+        <item name="android:windowDisablePreview">false</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
     <style name="Animation.ZuneloPDF.Dialog" parent="@android:style/Animation.Dialog">
         <item name="android:windowEnterAnimation">@anim/dialog_fade_scale_in</item>
         <item name="android:windowExitAnimation">@anim/dialog_fade_scale_out</item>

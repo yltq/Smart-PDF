@@ -17,6 +17,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -33,6 +34,7 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list), PageAdRefreshabl
     }
     private val mode get() = requireArguments().getString(ARG_MODE) ?: MODE_MERGE
     private lateinit var adapter: DocumentAdapter
+    private lateinit var accessFlow: StorageAccessFlow
     private lateinit var action: TextView
     private var documents = emptyList<DocumentItem>()
     private val selected = linkedSetOf<String>()
@@ -40,6 +42,18 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list), PageAdRefreshabl
     private var mergeTask: FixedDurationTask<DocumentItem>? = null
 
     private val mergeNameRequest = "merge_output_name"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        accessFlow = StorageAccessFlow(
+            fragment = this,
+            onGranted = {
+                bindListNative()
+                load()
+            },
+            onDenied = { renderPermissionState() }
+        )
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val toolbar = view.findViewById<View>(R.id.toolbar)
@@ -50,7 +64,13 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list), PageAdRefreshabl
         })
         toolbar.findViewById<View>(R.id.backButton).setOnClickListener { (requireActivity() as MainActivity).back() }
         lateinit var dragHelper: ItemTouchHelper
-        adapter = DocumentAdapter(selectionMode = true, draggable = mode == MODE_MERGE, onDragStart = { dragHelper.startDrag(it) }, onOpen = { toggle(it) })
+        adapter = DocumentAdapter(
+            selectionMode = true,
+            draggable = mode == MODE_MERGE,
+            onDragStart = { dragHelper.startDrag(it) },
+            onOpen = { toggle(it) },
+            onPreview = { (requireActivity() as MainActivity).openDocumentWithAd(it) }
+        )
         view.findViewById<TextView>(R.id.toolHint).apply { visibility = if (mode == MODE_MERGE) View.VISIBLE else View.GONE; if (mode == MODE_MERGE) setText(R.string.merge_order_hint) }
         view.findViewById<RecyclerView>(R.id.pdfList).apply {
             layoutManager = LinearLayoutManager(requireContext()); adapter = this@ToolListFragment.adapter
@@ -65,16 +85,29 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list), PageAdRefreshabl
             setText(when (mode) { MODE_MERGE -> R.string.continue_action; MODE_PRINT -> R.string.print; else -> R.string.next })
             setOnClickListener { proceed() }
         }
+        view.findViewById<View>(R.id.toolEmptyState)
+            .findViewById<View>(R.id.stateAction)
+            .setOnClickListener { accessFlow.request() }
         parentFragmentManager.setFragmentResultListener(mergeNameRequest, viewLifecycleOwner) { _, result ->
             result.getString(OutputNameDialogFragment.RESULT_NAME)?.let(::merge)
         }
-        bindListNative()
-        load()
+        if (DocumentStore.hasAccess(requireContext())) {
+            bindListNative()
+            load()
+        } else {
+            renderPermissionState()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        accessFlow.onResume()
+        if (view != null && !DocumentStore.hasAccess(requireContext())) renderPermissionState()
     }
 
     private fun bindListNative() {
         val container = view?.findViewById<ViewGroup>(R.id.toolNativeAd) ?: return
-        if (mode == MODE_PRINT) {
+        if (mode == MODE_PRINT || !DocumentStore.hasAccess(requireContext())) {
             SmartPdfAds.release(container)
             container.visibility = View.GONE
             return
@@ -84,8 +117,73 @@ class ToolListFragment : Fragment(R.layout.fragment_tool_list), PageAdRefreshabl
     }
 
     private fun load() {
+        if (!DocumentStore.hasAccess(requireContext())) {
+            renderPermissionState()
+            return
+        }
+        showLoading(true)
         val context = requireContext().applicationContext
-        Thread { val result = DocumentStore.scan(context).filter { it.type == DocumentType.PDF }; activity?.runOnUiThread { if (!isAdded) return@runOnUiThread; documents = result; adapter.submitList(result); requireArguments().document()?.let { preset -> if (result.any { it.uri == preset.uri }) toggle(preset) } } }.start()
+        Thread {
+            val result = DocumentStore.scan(context).filter { it.type == DocumentType.PDF }
+            activity?.runOnUiThread {
+                if (!isAdded) return@runOnUiThread
+                documents = result
+                showLoading(false)
+                renderDocuments(result)
+                requireArguments().document()?.let { preset -> if (result.any { it.uri == preset.uri }) toggle(preset) }
+            }
+        }.start()
+    }
+
+    private fun renderPermissionState() {
+        val root = view ?: return
+        showLoading(false)
+        adapter.submitList(emptyList())
+        selected.clear()
+        if (::action.isInitialized) {
+            action.isEnabled = false
+            action.visibility = View.GONE
+        }
+        root.findViewById<View>(R.id.pdfList).visibility = View.GONE
+        (root.findViewById<View>(R.id.toolNativeAd) as ViewGroup).also {
+            SmartPdfAds.release(it)
+            it.visibility = View.GONE
+        }
+        root.findViewById<View>(R.id.toolEmptyState).apply {
+            visibility = View.VISIBLE
+            findViewById<ImageView>(R.id.stateImage).setImageResource(R.drawable.state_no_permission)
+            findViewById<TextView>(R.id.stateTitle).setText(R.string.storage_access_title)
+            findViewById<TextView>(R.id.stateMessage).setText(R.string.storage_access_message)
+            findViewById<TextView>(R.id.stateAction).apply {
+                setText(R.string.storage_access_action)
+                visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun renderDocuments(result: List<DocumentItem>) {
+        val root = view ?: return
+        action.visibility = View.VISIBLE
+        root.findViewById<View>(R.id.pdfList).visibility = if (result.isEmpty()) View.GONE else View.VISIBLE
+        root.findViewById<View>(R.id.toolEmptyState).apply {
+            visibility = if (result.isEmpty()) View.VISIBLE else View.GONE
+            if (result.isEmpty()) {
+                findViewById<ImageView>(R.id.stateImage).setImageResource(R.drawable.state_no_files)
+                findViewById<TextView>(R.id.stateTitle).setText(R.string.nothing_here)
+                findViewById<TextView>(R.id.stateMessage).setText(R.string.documents_hint)
+                findViewById<View>(R.id.stateAction).visibility = View.GONE
+            }
+        }
+        adapter.submitList(result)
+    }
+
+    private fun showLoading(show: Boolean) {
+        val root = view ?: return
+        root.findViewById<View>(R.id.toolLoading).visibility = if (show) View.VISIBLE else View.GONE
+        if (show) {
+            root.findViewById<View>(R.id.pdfList).visibility = View.GONE
+            root.findViewById<View>(R.id.toolEmptyState).visibility = View.GONE
+        }
     }
 
     private fun toggle(item: DocumentItem) {

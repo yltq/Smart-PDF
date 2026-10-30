@@ -24,4 +24,10 @@
 <string name="permission_settings_title">允许访问文件</string>
 <string name="permission_settings_message">系统已不再显示 Smart PDF 的权限请求。请前往应用设置允许文件访问。</string>
 <string name="permission_settings_action">前往设置</string>
+    <string name="file_path">文件路径</string>
+    <string name="file_path_copied">文件路径已复制</string>
+    <string name="preview_file">预览文件</string>
+    <string name="large_file_type_zip">ZIP 压缩包</string>
+    <string name="large_file_type_apk">APK 安装包</string>
+    <string name="archive_contents">压缩包内容</string><string name="file_version">版本</string><string name="file_size">大小</string>
 </resources>

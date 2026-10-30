@@ -31,4 +31,5 @@
 <string name="permission_settings_title">ファイルへのアクセスを許可</string>
 <string name="permission_settings_message">Smart PDF のシステム権限ダイアログは無効になっています。ファイルへのアクセスを許可するには、アプリの設定を開いてください。</string>
 <string name="permission_settings_action">設定を開く</string>
+    <string name="file_path">ファイルパス</string><string name="file_path_copied">ファイルパスをコピーしました</string><string name="preview_file">ファイルをプレビュー</string><string name="large_file_type_zip">ZIP</string><string name="large_file_type_apk">APK</string><string name="archive_contents">アーカイブの内容</string><string name="file_version">バージョン</string><string name="file_size">サイズ</string>
 </resources>

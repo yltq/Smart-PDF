@@ -86,7 +86,9 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list), PageAdRe
             onMore = { MoreDialogFragment.newInstance(it).show(parentFragmentManager, "more") }
         )
         view.findViewById<RecyclerView>(R.id.documentList).apply { layoutManager = LinearLayoutManager(requireContext()); adapter = this@DocumentListFragment.adapter; itemAnimator = null }
-        parentFragmentManager.setFragmentResultListener(FileDialogs.RESULT_CHANGED, viewLifecycleOwner) { _, _ -> loadDocuments() }
+        parentFragmentManager.setFragmentResultListener(FileDialogs.RESULT_CHANGED, viewLifecycleOwner) { _, result ->
+            applyFileChange(result)
+        }
         view.findViewById<View>(R.id.stateAction).setOnClickListener { accessFlow.request() }
         title.alpha = 0f; title.translationY = requireContext().dp(6).toFloat()
         title.animate().alpha(1f).translationY(0f).setDuration(240).start()
@@ -97,7 +99,17 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list), PageAdRe
         loadDocuments()
     }
 
-    override fun onResume() { super.onResume(); accessFlow.onResume(); if (view != null && DocumentStore.hasAccess(requireContext())) loadDocuments() }
+    override fun onResume() {
+        super.onResume()
+        accessFlow.onResume()
+        if (view == null) return
+        if (DocumentStore.hasAccess(requireContext())) {
+            loadDocuments(showLoading = documents.isEmpty())
+        } else {
+            documents = emptyList()
+            render()
+        }
+    }
 
     private fun setupTool(root: View, icon: Int, label: String, click: () -> Unit) {
         root.findViewById<ImageView>(R.id.actionIcon).setImageResource(icon); root.findViewById<TextView>(R.id.actionLabel).text = label; root.setOnClickListener { click() }
@@ -142,16 +154,18 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list), PageAdRe
         }
     }
 
-    private fun loadDocuments() {
+    private fun loadDocuments(showLoading: Boolean = true) {
         if (loadingDocuments) {
             reloadAfterCurrentScan = true
             return
         }
         val currentView = view ?: return
         loadingDocuments = true
-        currentView.findViewById<View>(R.id.contentOverlay).visibility = View.VISIBLE
-        currentView.findViewById<View>(R.id.loading).visibility = View.VISIBLE
-        currentView.findViewById<View>(R.id.emptyState).visibility = View.GONE
+        if (showLoading) {
+            currentView.findViewById<View>(R.id.contentOverlay).visibility = View.VISIBLE
+            currentView.findViewById<View>(R.id.loading).visibility = View.VISIBLE
+            currentView.findViewById<View>(R.id.emptyState).visibility = View.GONE
+        }
         Thread {
             val result = DocumentStore.scan(requireContext())
             activity?.runOnUiThread {
@@ -169,6 +183,31 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list), PageAdRe
 
     fun refreshDocuments() = loadDocuments()
 
+    fun applyFileChange(result: Bundle) {
+        when (result.getString(FileDialogs.RESULT_ACTION)) {
+            FileDialogs.ACTION_RENAMED -> {
+                val oldUri = result.getString(FileDialogs.RESULT_OLD_URI) ?: return
+                val renamed = result.document() ?: return
+                documents = documents.map { if (it.uri.toString() == oldUri) renamed else it }
+                render()
+            }
+            FileDialogs.ACTION_DELETED -> {
+                val deletedUri = result.getString(FileDialogs.RESULT_URI) ?: return
+                documents = documents.filterNot { it.uri.toString() == deletedUri }
+                render()
+            }
+            FileDialogs.ACTION_FAVORITE -> {
+                val changedUri = result.getString(FileDialogs.RESULT_URI) ?: return
+                if (mode == MODE_COLLECTION) {
+                    render()
+                } else {
+                    documents.firstOrNull { it.uri.toString() == changedUri }?.let(adapter::refreshFavorite)
+                }
+            }
+            else -> loadDocuments(showLoading = documents.isEmpty())
+        }
+    }
+
     private fun render() {
         val root = view ?: return
         root.findViewById<View>(R.id.loading).visibility = View.GONE
@@ -179,7 +218,10 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list), PageAdRe
         }
         val source = when (mode) {
             MODE_RECENT -> { val map = documents.associateBy { it.uri.toString() }; DocumentStore.recentUris(requireContext()).mapNotNull(map::get) }
-            MODE_COLLECTION -> documents.filter { DocumentStore.isFavorite(requireContext(), it) }
+            MODE_COLLECTION -> {
+                val map = documents.associateBy { it.uri.toString() }
+                DocumentStore.favoriteUris(requireContext()).mapNotNull(map::get)
+            }
             else -> documents
         }
         val filtered = category?.let { type -> source.filter { it.type == type } } ?: source
@@ -197,7 +239,7 @@ class DocumentListFragment : Fragment(R.layout.fragment_document_list), PageAdRe
         val title = state.findViewById<TextView>(R.id.stateTitle)
         val message = state.findViewById<TextView>(R.id.stateMessage)
         val action = state.findViewById<TextView>(R.id.stateAction)
-        if (!access && mode == MODE_HOME) {
+        if (!access) {
             image.setImageResource(R.drawable.state_no_permission); title.setText(R.string.storage_access_title); message.setText(R.string.storage_access_message); action.setText(R.string.storage_access_action); action.visibility = View.VISIBLE
         } else {
             image.setImageResource(R.drawable.state_no_files)

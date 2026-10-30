@@ -15,6 +15,7 @@ import java.text.DateFormat
 import java.util.Date
 
 class LargeFileAdapter(
+    private val onOpen: (LargeFileItem) -> Unit,
     private val onSelectionChanged: (LargeFileItem) -> Unit
 ) : ListAdapter<LargeFileItem, LargeFileAdapter.Holder>(Diff) {
     var selectedPaths: Set<String> = emptySet()
@@ -66,7 +67,8 @@ class LargeFileAdapter(
                 DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(item.modified))
             } else context.getString(R.string.unknown_date)
             details.text = context.getString(R.string.large_file_details, DocumentStore.formatSize(item.size), date)
-            itemView.setOnClickListener { onSelectionChanged(item) }
+            itemView.setOnClickListener { onOpen(item) }
+            selection.setOnClickListener { onSelectionChanged(item) }
         }
     }
 
