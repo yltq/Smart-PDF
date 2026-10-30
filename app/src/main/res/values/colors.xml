@@ -2,6 +2,7 @@
 <resources>
     <color name="brand_red">#E91922</color>
     <color name="brand_red_dark">#C81018</color>
+    <color name="native_ad_button_blue">#FF0B57D0</color>
     <color name="ink">#171A22</color>
     <color name="ink_secondary">#697080</color>
     <color name="surface">#FFFFFFFF</color>

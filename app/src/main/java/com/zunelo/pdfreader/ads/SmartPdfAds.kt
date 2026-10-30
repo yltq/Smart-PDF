@@ -2,10 +2,13 @@ package com.zunelo.pdfreader.ads
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -13,6 +16,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import com.google.android.gms.ads.AdLoader
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
@@ -616,11 +620,32 @@ object SmartPdfAds {
         body.visibility = if (nativeAd.body.isNullOrBlank()) View.GONE else View.VISIBLE
         action.text = nativeAd.callToAction
         action.visibility = if (nativeAd.callToAction.isNullOrBlank()) View.GONE else View.VISIBLE
+        action.backgroundTintList = ColorStateList.valueOf(nativeActionColor(container.context))
         nativeAd.icon?.drawable?.let { icon.setImageDrawable(it); icon.visibility = View.VISIBLE } ?: run { icon.visibility = View.GONE }
         adView.setNativeAd(nativeAd)
         container.removeAllViews()
         container.addView(adView)
         activeNativeAds[container] = nativeAd
+    }
+
+    private fun nativeActionColor(context: Context): Int {
+        val useThemeColor = AdConfigRepository.userConfig(context).adsSettings.nativeButtonTheme
+        if (!useThemeColor) return ContextCompat.getColor(context, R.color.native_ad_button_blue)
+
+        val resolved = TypedValue()
+        return if (context.theme.resolveAttribute(
+                com.google.android.material.R.attr.colorPrimary,
+                resolved,
+                true
+            )
+        ) {
+            resolved.resourceId
+                .takeIf { it != 0 }
+                ?.let { ContextCompat.getColor(context, it) }
+                ?: resolved.data
+        } else {
+            ContextCompat.getColor(context, R.color.brand_red)
+        }
     }
 
     private fun bindPaidEvent(ad: Any, scene: AdScene, unit: AdUnitConfig) {
